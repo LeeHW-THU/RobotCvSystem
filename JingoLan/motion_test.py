@@ -105,6 +105,13 @@ speed = 0.9
 # for i in range(10):
 #     turn_right(turn_speed)
 #     time.sleep(0.2)
+print("=========GUIDE=========")
+print("Press 'w' then it go forward")
+print("Press 's' then it go backward")
+print("Press 'a' then it turn left")
+print("Press 'd' then it turn right")
+print("Press 'p' to exit")
+
 while True:
     key = readkey()
     if key=='w':
