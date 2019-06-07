@@ -1,4 +1,7 @@
-import wiringpi
+try:
+    import wiringpi
+except ImportError:
+    from .mock import wiringpi
 
 class Motor:
     MAX_PWM = 1024

@@ -1,8 +1,11 @@
 import asyncio
 import json
+import logging
 from typing import Iterator
 
 from .motor import Motor
+
+logger = logging.getLogger('Controller')
 
 class Controller:
     PORT = 7728
@@ -17,13 +20,24 @@ class Controller:
     async def start_server(self):
         async def on_connected(reader: asyncio.StreamReader, writer: asyncio.StreamWriter):
             if self.connected:
-                writer.write('Already connected')
+                logger.warning('Tring to connect, but controller already connected.'.encode())
+                writer.write('Already connected'.encode())
                 writer.write_eof()
                 return
+
+            logger.info('Connected')
             self.begin_control()
+
             while not reader.at_eof():
                 line = await reader.readline()
-                self._process_command(line.decode().trim())
+                line = line.decode().strip()
+                if not line:
+                    if not reader.at_eof():
+                        logger.warning('Empty command received')
+                    continue
+                self._process_command(line)
+
+            logger.info('Disonnected')
             self.end_control()
 
         await asyncio.start_server(on_connected, port=self.PORT)
@@ -33,13 +47,31 @@ class Controller:
         yield self.right_motor
 
     def _process_command(self, cmd):
-        cmd = json.loads(cmd)
-        if 'power' in cmd:
-            power = cmd['power']
-            if 'left' in power:
-                self.left_motor.input(power['left'])
-            if 'right' in power:
-                self.right_motor.input(power['right'])
+        logger.debug('command received: %s', cmd)
+        try:
+            cmd = json.loads(cmd)
+        except json.JSONDecodeError:
+            logger.warning('Invalid json command')
+            return
+
+        if isinstance(cmd, str):
+            if cmd == 'Stop':
+                self.stop()
+            else:
+                logger.warning('Unknown command %s', cmd)
+        elif isinstance(cmd, dict):
+            if 'power' in cmd:
+                power = cmd['power']
+                if 'left' in power:
+                    self.left_motor.input(power['left'])
+                if 'right' in power:
+                    self.right_motor.input(power['right'])
+        else:
+            logger.warning('Unsupported command type %s', type(cmd))
+
+    def stop(self):
+        for m in self._motors():
+            m.input(0)
 
     def begin_control(self):
         self.connected = True
@@ -49,6 +81,7 @@ class Controller:
             self.on_begin()
 
     def end_control(self):
+        self.stop()
         self.connected = False
         for m in self._motors():
             m.stop()

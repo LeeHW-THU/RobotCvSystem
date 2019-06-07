@@ -27,11 +27,19 @@ class ProtocolSSDP(asyncio.DatagramProtocol):
 
         logger.info('SEARCH received from %s', addr)
         # Response
+        response = '\r\n'.join([
+            'HTTP/1.1 200 OK',
+            'Cache-Control: max-age=20',
+            'EXT',
+            'ST: ' + TYPE,
+            '\r\n'
+        ])
         logger.info('Sending response to %s', addr)
-        self.transport.sendto('HTTP/1.1 200 OK\r\n\r\n'.encode(), addr)
+
+        self.transport.sendto(response.encode(), addr)
 
     def error_received(self, exc):
-        if exc == errno.EAGAIN or exc == errno.EWOULDBLOCK:
+        if exc in  [errno.EAGAIN, errno.EWOULDBLOCK]:
             logger.error('Error received: %s', exc)
         else:
             raise IOError("Unexpected connection error") from exc
@@ -73,7 +81,17 @@ class SSDPService:
             'NTS: ssdp:alive',
             '\r\n'
         ])
-        while not self.stopped:
-            logger.info('Sending alive NOTIFY')
+        logger.info('Start sending NOTIFY')
+
+        def send_notify():
+            logger.debug('Sending alive NOTIFY')
             transport.sendto(notify_message.encode())
+
+        for _ in range(3):
+            await asyncio.sleep(0.2)
+            send_notify()
+        while not self.stopped:
             await asyncio.sleep(10.0)
+            send_notify()
+
+        logger.info('End sending NOTIFY')
