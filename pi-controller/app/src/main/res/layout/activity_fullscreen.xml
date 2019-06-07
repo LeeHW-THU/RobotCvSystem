@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#0099cc"
+    tools:context=".FullscreenActivity">
+
+    <!-- The primary full-screen view. This can be replaced with whatever view
+         is needed to present your content, e.g. VideoView, SurfaceView,
+         TextureView, etc. -->
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:keepScreenOn="true">
+
+        <TextView
+            android:id="@+id/discoveringPrompt"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:gravity="center"
+            android:text="@string/discovering_robot"
+            android:textColor="#33b5e5"
+            android:textSize="50sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/connectionInfoTxt"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:gravity="center"
+            tools:text="192.168.156.82"
+            android:textColor="#33b5e5"
+            android:textSize="50sp"
+            android:textStyle="bold"
+            android:visibility="invisible" />
+    </FrameLayout>
+
+
+    <android.support.constraint.ConstraintLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+
+        <View
+            android:id="@+id/controlOverlayBackground"
+            android:layout_width="100dp"
+            android:layout_height="0dp"
+            android:background="@color/black_overlay"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <TextView
+            android:id="@+id/speedLabel"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:layout_marginTop="8dp"
+            android:text="@string/speed"
+            app:layout_constraintStart_toStartOf="@+id/controlOverlayBackground"
+            app:layout_constraintTop_toTopOf="@+id/controlOverlayBackground" />
+
+        <TextView
+            android:id="@+id/turnLabel"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="@string/turn"
+            app:layout_constraintStart_toStartOf="@+id/speedLabel"
+            app:layout_constraintTop_toBottomOf="@+id/speedLabel" />
+
+        <TextView
+            android:id="@+id/speedTxt"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            app:layout_constraintStart_toEndOf="@+id/speedLabel"
+            app:layout_constraintTop_toTopOf="@+id/speedLabel"
+            tools:text="0.00" />
+
+        <TextView
+            android:id="@+id/turnTxt"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            app:layout_constraintStart_toEndOf="@+id/turnLabel"
+            app:layout_constraintTop_toTopOf="@+id/turnLabel"
+            tools:text="0.00" />
+
+        <View
+            android:id="@+id/sensorOverlayBackground"
+            android:layout_width="100dp"
+            android:layout_height="0dp"
+            android:background="@color/black_overlay"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <TextView
+            android:id="@+id/sensorInfo"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:layout_marginTop="8dp"
+            android:layout_marginEnd="8dp"
+            app:layout_constraintEnd_toEndOf="@+id/sensorOverlayBackground"
+            app:layout_constraintStart_toStartOf="@+id/sensorOverlayBackground"
+            app:layout_constraintTop_toTopOf="@+id/sensorOverlayBackground"
+            tools:text="传感器信息" />
+
+        <Button
+            android:id="@+id/stopButton"
+            style="?android:attr/buttonBarButtonStyle"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:layout_marginTop="8dp"
+            android:layout_marginEnd="8dp"
+            android:text="@string/stop"
+            app:layout_constraintEnd_toEndOf="@+id/controlOverlayBackground"
+            app:layout_constraintStart_toStartOf="@+id/controlOverlayBackground"
+            app:layout_constraintTop_toBottomOf="@+id/turnLabel" />
+
+    </android.support.constraint.ConstraintLayout>
+</FrameLayout>
