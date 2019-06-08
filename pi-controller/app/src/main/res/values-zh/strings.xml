@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">PiRobot遥控</string>
+    <string name="discovering_robot">正在发现机器人</string>
+    <string name="stop">停止</string>
+    <string name="turn">转向：</string>
+    <string name="speed">速度：</string>
+</resources>
