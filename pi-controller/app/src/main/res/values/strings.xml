@@ -5,4 +5,7 @@
     <string name="stop">Stop</string>
     <string name="turn">"Turn: "</string>
     <string name="speed">"Speed: "</string>
+    <string name="stopped">Stopped</string>
+    <string name="leftLabel">L</string>
+    <string name="rightLabel">R</string>
 </resources>

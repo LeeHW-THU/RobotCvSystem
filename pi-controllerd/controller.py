@@ -20,7 +20,7 @@ class Controller:
     async def start_server(self):
         async def on_connected(reader: asyncio.StreamReader, writer: asyncio.StreamWriter):
             if self.connected:
-                logger.warning('Tring to connect, but controller already connected.'.encode())
+                logger.warning('Trying to connect, but controller already connected.')
                 writer.write('Already connected'.encode())
                 writer.write_eof()
                 return
@@ -38,6 +38,7 @@ class Controller:
                 self._process_command(line)
 
             logger.info('Disonnected')
+            writer.write_eof()
             self.end_control()
 
         await asyncio.start_server(on_connected, port=self.PORT)

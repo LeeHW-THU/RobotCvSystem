@@ -5,4 +5,7 @@
     <string name="stop">停止</string>
     <string name="turn">转向：</string>
     <string name="speed">速度：</string>
+    <string name="stopped">已停止</string>
+    <string name="leftLabel">左</string>
+    <string name="rightLabel">右</string>
 </resources>

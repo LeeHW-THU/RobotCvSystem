@@ -19,9 +19,10 @@ class RobotAgent(connectionInfo: RobotConnectionInfo) {
     private val writer: OutputStreamWriter
     private val objectMapper = jacksonObjectMapper()
         .disable(JsonGenerator.Feature.AUTO_CLOSE_TARGET)
+        .disable(JsonGenerator.Feature.FLUSH_PASSED_TO_STREAM)
 
     init {
-        val socket = Socket(connectionInfo.address, PORT)
+        val socket = Socket(connectionInfo.address, PORT, connectionInfo.localAddress, 0)
         writer = OutputStreamWriter(socket.getOutputStream(), Charsets.UTF_8)
         Log.i(TAG, "connected to ${connectionInfo.address.hostAddress}:$PORT")
     }

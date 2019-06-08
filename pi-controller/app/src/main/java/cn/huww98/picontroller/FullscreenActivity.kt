@@ -6,6 +6,7 @@ import android.os.Bundle
 import android.support.v7.app.AppCompatActivity
 import android.util.Log
 import android.view.MotionEvent
+import android.view.View
 import android.view.View.INVISIBLE
 import android.view.View.VISIBLE
 import android.widget.TextView
@@ -14,6 +15,7 @@ import io.reactivex.Single
 import io.reactivex.android.schedulers.AndroidSchedulers
 import io.reactivex.disposables.CompositeDisposable
 import io.reactivex.disposables.Disposable
+import io.reactivex.rxkotlin.ofType
 import io.reactivex.rxkotlin.subscribeBy
 import io.reactivex.schedulers.Schedulers
 import io.reactivex.subjects.BehaviorSubject
@@ -65,10 +67,16 @@ class FullscreenActivity : AppCompatActivity() {
             .subscribe { txt.text = it }
     }
 
+    private fun Observable<Boolean>.subscribeOnViewVisibility(view: View): Disposable {
+        return this.map { if (it) VISIBLE else INVISIBLE }
+            .observeOn(AndroidSchedulers.mainThread())
+            .subscribe { view.visibility = it }
+    }
+
     private val dy = PublishSubject.create<Float>()
 
     inner class ControlSession(connectionInfo: RobotConnectionInfo) {
-        private val controlSubscribes = CompositeDisposable()
+        private var controlSubscribes: CompositeDisposable? = null
         private var robot: RobotAgent? = null
         private val speedController = ScreenSpeedController(dy)
         private val stoppedSubject: Subject<Boolean>
@@ -94,18 +102,24 @@ class FullscreenActivity : AppCompatActivity() {
                             }
                         })
                     robot = newRobot
-                }
 
-            controlSubscribes.addAll(
-                controller.speed.subscribeOnTextView(speedTxt),
-                controller.turn.subscribeOnTextView(turnTxt)
-            )
+                    val powerCommands = controller.command.ofType<PowerCommand>()
+
+                    controlSubscribes = CompositeDisposable(
+                        controller.speed.subscribeOnTextView(speedTxt),
+                        controller.turn.subscribeOnTextView(turnTxt),
+                        powerCommands.map { it.left }.subscribeOnTextView(leftTxt),
+                        powerCommands.map { it.right }.subscribeOnTextView(rightTxt),
+                        stoppedSubject.subscribeOnViewVisibility(stoppedPrompt),
+                        stoppedSubject.map { !it }.subscribeOnViewVisibility(motorInfoGroup)
+                    )
+                }
         }
 
         var disposing = false
         fun dispose() {
             disposing = true
-            controlSubscribes.dispose()
+            controlSubscribes?.dispose()
             robot?.close() // TODO: Robot not created yet?
         }
 
@@ -135,6 +149,8 @@ class FullscreenActivity : AppCompatActivity() {
     private fun endControl() {
         runOnUiThread {
             connectionInfoTxt.visibility = INVISIBLE
+            motorInfoGroup.visibility = INVISIBLE
+            stoppedPrompt.visibility = INVISIBLE
         }
         controlSession?.dispose()
     }

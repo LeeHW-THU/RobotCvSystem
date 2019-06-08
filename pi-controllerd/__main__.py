@@ -1,5 +1,6 @@
 import logging
 import asyncio
+import sys
 try:
     import wiringpi
 except ImportError:
@@ -8,6 +9,8 @@ except ImportError:
 from .ssdp import SSDPService
 from .controller import Controller
 
+logger = logging.getLogger('Main')
+
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
     wiringpi.wiringPiSetup()
@@ -15,10 +18,24 @@ if __name__ == "__main__":
     loop = asyncio.get_event_loop()
 
     ssdp = SSDPService()
-    asyncio.ensure_future(ssdp.start())
+    async def run_ssdp():
+        try:
+            await ssdp.start()
+        except:
+            logger.error('Error in SSDP', exc_info=True)
+            sys.exit(1)
 
     controller = Controller(on_begin=ssdp.stop,
-                            on_end=ssdp.start)
-    asyncio.ensure_future(controller.start_server())
+                            on_end=run_ssdp)
+    async def run_controller():
+        try:
+            await controller.start_server()
+        except:
+            logger.error('Error in Controller', exc_info=True)
+            sys.exit(2)
 
+    asyncio.gather(
+        run_controller(),
+        run_ssdp(),
+    )
     loop.run_forever()

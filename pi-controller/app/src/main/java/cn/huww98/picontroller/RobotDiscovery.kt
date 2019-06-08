@@ -12,7 +12,8 @@ import java.util.concurrent.TimeUnit
 
 
 data class RobotConnectionInfo(
-    val address: InetAddress
+    val address: InetAddress,
+    val localAddress: InetAddress
 )
 
 class RobotDiscovery(private val ctx: Context) {
@@ -76,7 +77,8 @@ class RobotDiscovery(private val ctx: Context) {
                     if (nt == type) {
                         val remoteAddress = packet.address
                         Log.d(tag, "Got $remoteAddress from NOTIFY")
-                        emitter.onNext(RobotConnectionInfo(remoteAddress))
+                        val localAddress = inf.inetAddresses.asSequence().first { it::class == remoteAddress::class }
+                        emitter.onNext(RobotConnectionInfo(remoteAddress, localAddress))
                     }
                 }
                 Log.d(tag, "Finished listen NOTIFY on ${inf.displayName}")
@@ -87,7 +89,7 @@ class RobotDiscovery(private val ctx: Context) {
 
         val disposables = CompositeDisposable()
         getWlanAddresses().forEach { addr ->
-            val socket = DatagramSocket(InetSocketAddress(addr, 0))
+            val socket = DatagramSocket(0, addr)
             val response = Observable.create<RobotConnectionInfo> { emitter ->
                 val time = System.currentTimeMillis()
                 var curTime = System.currentTimeMillis()
@@ -103,7 +105,7 @@ class RobotDiscovery(private val ctx: Context) {
                         if (s == "HTTP/1.1 200") {
                             val remoteAddress = p.address
                             Log.d(tag, "Got $remoteAddress from response")
-                            emitter.onNext(RobotConnectionInfo(remoteAddress))
+                            emitter.onNext(RobotConnectionInfo(remoteAddress, addr))
                         }
                         curTime = System.currentTimeMillis()
                     } catch (_: SocketTimeoutException) {

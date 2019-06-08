@@ -10,6 +10,10 @@ SSDP_ADDR = '239.255.255.250'
 SSDP_PORT = 1900
 TYPE = 'urn:pirobot-huww98-cn:device:PiRobot:1'
 
+# Mainly used to debug on PC
+# Choose the correct inteface to use
+LOCAL_ADDR = '0.0.0.0'
+
 class ProtocolSSDP(asyncio.DatagramProtocol):
     def connection_made(self, transport):
         self.transport = transport
@@ -57,7 +61,7 @@ class SSDPService:
 
     async def ssdp_response(self):
         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
-        mreq = struct.pack('4sL', socket.inet_aton(SSDP_ADDR), socket.INADDR_ANY)
+        mreq = struct.pack('4s4s', socket.inet_aton(SSDP_ADDR), socket.inet_aton(LOCAL_ADDR))
         sock.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, mreq)
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         try:
@@ -72,7 +76,8 @@ class SSDPService:
     async def ssdp_notify(self):
         loop = asyncio.get_event_loop()
         transport, protocol = await loop.create_datagram_endpoint(asyncio.DatagramProtocol,
-                                                                  remote_addr=(SSDP_ADDR, SSDP_PORT))
+                                                                  remote_addr=(SSDP_ADDR, SSDP_PORT),
+                                                                  local_addr=(LOCAL_ADDR, 0))
         notify_message = '\r\n'.join([
             'NOTIFY * HTTP/1.1',
             'Host: {}:{}'.format(SSDPService, SSDP_PORT),
