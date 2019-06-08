@@ -15,16 +15,10 @@ class Controller:
         self.right_motor = Motor(5, 6)
         self.on_begin = on_begin
         self.on_end = on_end
-        self.connected = False
+        self.connection_task = None
 
     async def start_server(self):
         async def on_connected(reader: asyncio.StreamReader, writer: asyncio.StreamWriter):
-            if self.connected:
-                logger.warning('Trying to connect, but controller already connected.')
-                writer.write('Already connected'.encode())
-                writer.write_eof()
-                return
-
             logger.info('Connected')
             self.begin_control()
 
@@ -40,8 +34,17 @@ class Controller:
             logger.info('Disonnected')
             writer.write_eof()
             self.end_control()
+            self.connection_task = None
 
-        await asyncio.start_server(on_connected, port=self.PORT)
+        def run_on_connected(reader: asyncio.StreamReader, writer: asyncio.StreamWriter):
+            if self.connection_task is not None:
+                logger.warning('Trying to connect, but controller already connected.')
+                writer.write('Already connected'.encode())
+                writer.write_eof()
+                return
+            self.connection_task = asyncio.ensure_future(on_connected(reader, writer))
+
+        await asyncio.start_server(run_on_connected, port=self.PORT)
 
     def _motors(self) -> Iterator[Motor]:
         yield self.left_motor
@@ -75,7 +78,6 @@ class Controller:
             m.input(0)
 
     def begin_control(self):
-        self.connected = True
         for m in self._motors():
             m.start()
         if self.on_begin:
@@ -83,7 +85,6 @@ class Controller:
 
     def end_control(self):
         self.stop()
-        self.connected = False
         for m in self._motors():
             m.stop()
         if self.on_end:

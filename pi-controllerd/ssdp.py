@@ -3,6 +3,7 @@ import socket
 import struct
 import errno
 import logging
+import sys
 
 logger = logging.getLogger('SSDP')
 
@@ -42,22 +43,30 @@ class ProtocolSSDP(asyncio.DatagramProtocol):
 
         self.transport.sendto(response.encode(), addr)
 
-    def error_received(self, exc):
-        if exc in  [errno.EAGAIN, errno.EWOULDBLOCK]:
+    def error_received(self, exc: OSError):
+        if exc.errno in  [errno.EAGAIN, errno.EWOULDBLOCK]:
             logger.error('Error received: %s', exc)
         else:
-            raise IOError("Unexpected connection error") from exc
+            logger.error('Unexpected Error', exc_info=exc)
+            sys.exit(1)
 
 class SSDPService:
     def __init__(self):
         self.stopped = False
+        self.response_transport = None
+        self.wait_task = None
 
-    def start(self):
+    def run(self):
         self.stopped = False
         return asyncio.gather(self.ssdp_response(), self.ssdp_notify())
 
     def stop(self):
         self.stopped = True
+        if self.wait_task is not None:
+            self.wait_task.cancel()
+        if self.response_transport is not None:
+            self.response_transport.close()
+            self.response_transport = None
 
     async def ssdp_response(self):
         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
@@ -70,7 +79,7 @@ class SSDPService:
             pass
         sock.bind(('', SSDP_PORT))
         loop = asyncio.get_event_loop()
-        await loop.create_datagram_endpoint(ProtocolSSDP, sock=sock)
+        self.response_transport, _ = await loop.create_datagram_endpoint(ProtocolSSDP, sock=sock)
         logger.info("listening")
 
     async def ssdp_notify(self):
@@ -88,15 +97,18 @@ class SSDPService:
         ])
         logger.info('Start sending NOTIFY')
 
-        def send_notify():
+        async def send_notify(delay: float):
+            self.wait_task = asyncio.ensure_future(asyncio.sleep(delay))
+            await self.wait_task
             logger.debug('Sending alive NOTIFY')
             transport.sendto(notify_message.encode())
 
-        for _ in range(3):
-            await asyncio.sleep(0.2)
-            send_notify()
-        while not self.stopped:
-            await asyncio.sleep(10.0)
-            send_notify()
+        try:
+            for _ in range(3):
+                await send_notify(0.2)
+            while not self.stopped:
+                await send_notify(10)
+        except asyncio.CancelledError:
+            pass
 
         logger.info('End sending NOTIFY')
