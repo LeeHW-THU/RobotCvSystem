@@ -4,7 +4,8 @@ except ImportError:
     from .mock import wiringpi
 
 class Motor:
-    MAX_PWM = 1024
+    MAX_PWM = 100
+    MIN_PWM = 15 # PWM太低小车无法运动，设置最小值提升操作体验
 
     def __init__(self, forward_pin: int, backward_pin: int):
         self.forward_pin = forward_pin
@@ -28,7 +29,10 @@ class Motor:
 
     @classmethod
     def _write_pwm(cls, pin, value):
-        wiringpi.softPwmWrite(pin, int(round(value * cls.MAX_PWM)))
+        if value == 0:
+            wiringpi.softPwmWrite(pin, 0)
+        else:
+            wiringpi.softPwmWrite(pin, cls.MIN_PWM + int(round(value * (cls.MAX_PWM - cls.MIN_PWM))))
 
     def input(self, power: float):
         """Set motor output power

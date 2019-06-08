@@ -5,6 +5,9 @@ logger.warning('wiringpi mock in use')
 
 OUTPUT = 'output'
 
+def wiringPiSetup():
+    logger.debug('wiringPiSetup')
+
 def pinMode(pin, mode):
     logger.debug('pinMode %d %s', pin, mode)
 

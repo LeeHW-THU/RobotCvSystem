@@ -1,0 +1,13 @@
+[Unit]
+Description=pi-controller service daemon
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+WorkingDirectory=/home/pi
+User=pi
+ExecStart=/usr/bin/python3 -m pi-controllerd
+Restart=always
+
+[Install]
+WantedBy=multi-user.target

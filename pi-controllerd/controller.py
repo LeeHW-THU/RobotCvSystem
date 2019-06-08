@@ -51,7 +51,7 @@ class Controller:
         try:
             cmd = json.loads(cmd)
         except json.JSONDecodeError:
-            logger.warning('Invalid json command')
+            logger.warning('Invalid json command: %s', cmd)
             return
 
         if isinstance(cmd, str):
