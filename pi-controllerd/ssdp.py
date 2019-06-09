@@ -84,9 +84,7 @@ class SSDPService:
 
     async def ssdp_notify(self):
         loop = asyncio.get_event_loop()
-        transport, protocol = await loop.create_datagram_endpoint(asyncio.DatagramProtocol,
-                                                                  remote_addr=(SSDP_ADDR, SSDP_PORT),
-                                                                  local_addr=(LOCAL_ADDR, 0))
+
         notify_message = '\r\n'.join([
             'NOTIFY * HTTP/1.1',
             'Host: {}:{}'.format(SSDPService, SSDP_PORT),
@@ -97,17 +95,37 @@ class SSDPService:
         ])
         logger.info('Start sending NOTIFY')
 
-        async def send_notify(delay: float):
+        async def wait(delay: float):
             self.wait_task = asyncio.ensure_future(asyncio.sleep(delay))
             await self.wait_task
-            logger.debug('Sending alive NOTIFY')
+
+        def send_notify():
+            logger.debug('Sending alive NOTIFY from %s', local_addr)
             transport.sendto(notify_message.encode())
 
+        last_local_addr = None
         try:
-            for _ in range(3):
-                await send_notify(0.2)
             while not self.stopped:
-                await send_notify(10)
+                try:
+                    transport, _ = await loop.create_datagram_endpoint(
+                        asyncio.DatagramProtocol,
+                        remote_addr=(SSDP_ADDR, SSDP_PORT),
+                        local_addr=(LOCAL_ADDR, 0))
+                except OSError as e:
+                    if e.errno in [errno.ENETUNREACH]:
+                        logger.warning('Error while create_datagram_endpoint for NOTIFY: %s', e)
+                    else:
+                        raise
+                else:
+                    local_addr = transport.get_extra_info('sockname')[0]
+                    if local_addr != last_local_addr: # Joined in new network
+                        last_local_addr = local_addr
+                        for _ in range(3):
+                            await wait(0.2)
+                            send_notify()
+                    else:
+                        send_notify()
+                await wait(10.0)
         except asyncio.CancelledError:
             pass
 
