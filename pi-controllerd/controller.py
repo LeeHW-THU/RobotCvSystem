@@ -19,7 +19,7 @@ class Controller:
 
     async def start_server(self):
         async def on_connected(reader: asyncio.StreamReader, writer: asyncio.StreamWriter):
-            logger.info('Connected')
+            logger.info('Connected from %s', writer.transport.get_extra_info('peername'))
             self.begin_control()
 
             while not reader.at_eof():

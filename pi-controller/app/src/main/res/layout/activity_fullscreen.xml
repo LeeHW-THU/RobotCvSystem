@@ -41,8 +41,11 @@
 
 
     <android.support.constraint.ConstraintLayout
+        android:id="@+id/controlSessionOverlay"
         android:layout_width="match_parent"
-        android:layout_height="match_parent">
+        android:layout_height="match_parent"
+        android:visibility="invisible"
+        tools:visibility="visible">
 
         <View
             android:id="@+id/controlOverlayBackground"
@@ -137,8 +140,8 @@
             android:id="@+id/leftLabel"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="@string/leftLabel"
             android:layout_marginBottom="8dp"
+            android:text="@string/leftLabel"
             app:layout_constraintBottom_toBottomOf="@+id/controlOverlayBackground"
             app:layout_constraintEnd_toStartOf="@+id/rightLabel"
             app:layout_constraintStart_toStartOf="@+id/controlOverlayBackground" />

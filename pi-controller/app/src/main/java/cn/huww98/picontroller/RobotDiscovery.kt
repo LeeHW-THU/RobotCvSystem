@@ -18,8 +18,8 @@ data class RobotConnectionInfo(
 
 class RobotDiscovery(private val ctx: Context) {
     companion object {
-        val groupv4 = InetAddress.getByName("239.255.255.250")
-        val groupv6 = InetAddress.getByName("ff02::f")
+        val groupV4: InetAddress = InetAddress.getByName("239.255.255.250")
+        val groupV6: InetAddress = InetAddress.getByName("ff02::f")
 
         const val type = "urn:pirobot-huww98-cn:device:PiRobot:1"
         const val port = 1900
@@ -52,7 +52,7 @@ class RobotDiscovery(private val ctx: Context) {
         getWlanInterfaces().forEach { inf ->
             val notify = Observable.create<RobotConnectionInfo> { emitter ->
                 val socket = MulticastSocket(port)
-                socket.joinGroup(InetSocketAddress(groupv4, port), inf)
+                socket.joinGroup(InetSocketAddress(groupV4, port), inf)
                 var finished = false
                 emitter.setCancellable {
                     finished = true
@@ -118,8 +118,8 @@ class RobotDiscovery(private val ctx: Context) {
             connectionInfo.add(response.subscribeOn(Schedulers.io()))
 
             val (group, groupTxt) = when (addr) {
-                is Inet4Address -> Pair(groupv4, groupv4.hostAddress)
-                is Inet6Address -> Pair(groupv6, "[${groupv6.hostAddress}]")
+                is Inet4Address -> Pair(groupV4, groupV4.hostAddress)
+                is Inet6Address -> Pair(groupV6, "[${groupV6.hostAddress}]")
                 else -> throw NotImplementedError()
             }
 
