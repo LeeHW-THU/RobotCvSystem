@@ -1,9 +1,10 @@
 import asyncio
 import json
 import logging
-from typing import Iterator
+from typing import Iterator, Optional
 
 from .motor import Motor
+from .videotransmitter import VideoTransmitter
 
 logger = logging.getLogger('Controller')
 
@@ -15,11 +16,14 @@ class Controller:
         self.right_motor = Motor(5, 6)
         self.on_begin = on_begin
         self.on_end = on_end
+
         self.connection_task = None
+        self.remote_addr: Optional[tuple] = None
+        self.video_transmitter: Optional[VideoTransmitter] = None
 
     async def start_server(self):
         async def on_connected(reader: asyncio.StreamReader, writer: asyncio.StreamWriter):
-            logger.info('Connected from %s', writer.transport.get_extra_info('peername'))
+            logger.info('Connected from %s', self.remote_addr)
             self.begin_control()
 
             while not reader.at_eof():
@@ -42,6 +46,7 @@ class Controller:
                 writer.write('Already connected'.encode())
                 writer.write_eof()
                 return
+            self.remote_addr = writer.transport.get_extra_info('peername')
             self.connection_task = asyncio.ensure_future(on_connected(reader, writer))
 
         await asyncio.start_server(run_on_connected, port=self.PORT)
@@ -70,10 +75,20 @@ class Controller:
                     self.left_motor.input(power['left'])
                 if 'right' in power:
                     self.right_motor.input(power['right'])
+            if 'video' in cmd:
+                video = cmd['video']
+                if self.video_transmitter is not None:
+                    logger.warning('video command can only be send once')
+                elif 'port' not in video:
+                    logger.warning('video command should specify "port" to transmit to')
+                else:
+                    self.video_transmitter = VideoTransmitter(self.remote_addr[0], video['port'])
         else:
             logger.warning('Unsupported command type %s', type(cmd))
 
     def stop(self):
+        """Stop all motion
+        """
         for m in self._motors():
             m.input(0)
 
@@ -87,30 +102,8 @@ class Controller:
         self.stop()
         for m in self._motors():
             m.stop()
+        if self.video_transmitter is not None:
+            self.video_transmitter.stop()
+            self.video_transmitter = None
         if self.on_end:
             self.on_end()
-
-
-class RobotControlProtocol(asyncio.Protocol):
-    def __init__(self, controller: Controller):
-        self.controller = controller
-        self.transport = None
-
-    def connection_made(self, transport):
-        if self.controller.connected:
-            transport.write('Already connected'.encode())
-            transport.close()
-        else:
-            self.transport = transport
-
-    def data_received(self, data):
-        if self.transport is None:
-            return
-        message = data.decode()
-        print('Data received: {!r}'.format(message))
-
-        print('Send: {!r}'.format(message))
-        self.transport.write(data)
-
-        print('Close the client socket')
-        self.transport.close()

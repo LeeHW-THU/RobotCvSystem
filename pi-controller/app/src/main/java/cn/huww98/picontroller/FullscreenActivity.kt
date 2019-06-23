@@ -6,6 +6,7 @@ import android.os.Bundle
 import android.support.v7.app.AppCompatActivity
 import android.util.Log
 import android.view.MotionEvent
+import android.view.SurfaceHolder
 import android.view.View
 import android.view.View.INVISIBLE
 import android.view.View.VISIBLE
@@ -51,17 +52,26 @@ class FullscreenActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        val gstreamer = Gstreamer()
-        gstreamer.init(this)
-        Log.d("gst-test", gstreamer.version())
-
         setContentView(R.layout.activity_fullscreen)
 
-        startDiscovery()
+        val gstreamer = Gstreamer(this)
+        videoTransmissionView.holder.addCallback(object : SurfaceHolder.Callback {
+            override fun surfaceChanged(holder: SurfaceHolder, format: Int, width: Int, height: Int) {
+                gstreamer.surfaceChanged(holder)
+            }
 
-        stopButton.setOnClickListener {
-            controlSession?.stop()
-        }
+            override fun surfaceDestroyed(holder: SurfaceHolder) {
+                gstreamer.surfaceDestroyed()
+            }
+
+            override fun surfaceCreated(holder: SurfaceHolder) {}
+        })
+
+//        startDiscovery()
+//
+//        stopButton.setOnClickListener {
+//            controlSession?.stop()
+//        }
     }
 
     private fun Observable<Double>.subscribeOnTextView(txt: TextView): Disposable {

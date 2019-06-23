@@ -9,6 +9,7 @@ User=pi
 ExecStart=/usr/bin/python3 -m pi-controllerd
 Restart=always
 RestartSec=5s
+RuntimeDirectory=pi-controllerd
 
 [Install]
 WantedBy=multi-user.target
