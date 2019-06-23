@@ -12,17 +12,18 @@ import android.view.View.INVISIBLE
 import android.view.View.VISIBLE
 import android.widget.TextView
 import io.reactivex.Observable
-import io.reactivex.Single
 import io.reactivex.android.schedulers.AndroidSchedulers
 import io.reactivex.disposables.CompositeDisposable
 import io.reactivex.disposables.Disposable
 import io.reactivex.rxkotlin.ofType
 import io.reactivex.rxkotlin.subscribeBy
-import io.reactivex.schedulers.Schedulers
 import io.reactivex.subjects.BehaviorSubject
 import io.reactivex.subjects.PublishSubject
 import io.reactivex.subjects.Subject
 import kotlinx.android.synthetic.main.activity_fullscreen.*
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.launch
 
 class FullscreenActivity : AppCompatActivity() {
 
@@ -54,24 +55,11 @@ class FullscreenActivity : AppCompatActivity() {
 
         setContentView(R.layout.activity_fullscreen)
 
-        val gstreamer = Gstreamer(this)
-        videoTransmissionView.holder.addCallback(object : SurfaceHolder.Callback {
-            override fun surfaceChanged(holder: SurfaceHolder, format: Int, width: Int, height: Int) {
-                gstreamer.surfaceChanged(holder)
-            }
+        startDiscovery()
 
-            override fun surfaceDestroyed(holder: SurfaceHolder) {
-                gstreamer.surfaceDestroyed()
-            }
-
-            override fun surfaceCreated(holder: SurfaceHolder) {}
-        })
-
-//        startDiscovery()
-//
-//        stopButton.setOnClickListener {
-//            controlSession?.stop()
-//        }
+        stopButton.setOnClickListener {
+            controlSession?.stop()
+        }
     }
 
     private fun Observable<Double>.subscribeOnTextView(txt: TextView): Disposable {
@@ -94,8 +82,18 @@ class FullscreenActivity : AppCompatActivity() {
         private var robot: RobotAgent? = null
         private val speedController = ScreenSpeedController(dy)
         private val stoppedSubject: Subject<Boolean>
+        private val gstreamer = Gstreamer(this@FullscreenActivity)
 
         init {
+            videoTransmissionView.holder.addCallback(object : SurfaceHolder.Callback {
+                override fun surfaceChanged(holder: SurfaceHolder, format: Int, width: Int, height: Int) =
+                    gstreamer.surfaceChanged(holder)
+
+                override fun surfaceDestroyed(holder: SurfaceHolder) = gstreamer.surfaceDestroyed()
+                override fun surfaceCreated(holder: SurfaceHolder) = Unit
+            })
+            gstreamer.surfaceChanged(videoTransmissionView.holder)
+
             stoppedSubject = BehaviorSubject.createDefault(true)
 
             val controller = DifferentialController(
@@ -104,20 +102,28 @@ class FullscreenActivity : AppCompatActivity() {
                 stoppedSubject
             )
 
-            val ignore = Single.fromCallable { RobotAgent(connectionInfo) }
-                .subscribeOn(Schedulers.io())
-                .subscribe { newRobot ->
-                    newRobot.command(controller.command)
-                        .subscribeBy(onError = {
-                            if (!disposing) {
-                                Log.w("Main", "Error, restart discovery", it)
-                                endControl()
-                                startDiscovery()
-                            }
-                        })
-                    robot = newRobot
-                    runOnUiThread { controlSessionOverlay.visibility = VISIBLE }
+            GlobalScope.launch(Dispatchers.IO) {
+                val gstreamerStart = launch {
+                    gstreamer.start(connectionInfo.address.hostAddress)
                 }
+
+                val newRobot = RobotAgent(connectionInfo)
+                robot = newRobot
+                launch(Dispatchers.Main) { controlSessionOverlay.visibility = VISIBLE }
+                newRobot.command(controller.command)
+                    .subscribeBy(onError = {
+                        if (!disposing) {
+                            Log.w("Main", "Error, restart discovery", it)
+                            endControl()
+                            startDiscovery()
+                        }
+                    })
+
+                gstreamerStart.join()
+                val port = gstreamer.getPort()
+                Log.i("Main", "gstreamer started at port $port")
+                newRobot.video(port)
+            }
 
             val powerCommands = controller.command.ofType<PowerCommand>()
 
@@ -135,6 +141,7 @@ class FullscreenActivity : AppCompatActivity() {
         fun dispose() {
             disposing = true
             controlSubscribes.dispose()
+            gstreamer.finalize()
             robot?.close() // TODO: Robot not created yet?
         }
 

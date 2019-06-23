@@ -18,8 +18,8 @@ class Controller:
         self.on_end = on_end
 
         self.connection_task = None
-        self.remote_addr: Optional[tuple] = None
-        self.video_transmitter: Optional[VideoTransmitter] = None
+        self.remote_addr = None
+        self.video_transmitter = None
 
     async def start_server(self):
         async def on_connected(reader: asyncio.StreamReader, writer: asyncio.StreamWriter):

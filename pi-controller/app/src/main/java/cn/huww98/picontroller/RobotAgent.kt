@@ -1,6 +1,8 @@
 package cn.huww98.picontroller
 
 import android.util.Log
+import com.fasterxml.jackson.annotation.JsonTypeInfo
+import com.fasterxml.jackson.annotation.JsonTypeName
 import com.fasterxml.jackson.core.JsonGenerator
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import io.reactivex.Completable
@@ -27,7 +29,7 @@ class RobotAgent(connectionInfo: RobotConnectionInfo) {
         Log.i(TAG, "connected to ${connectionInfo.address.hostAddress}:$PORT")
     }
 
-    fun command(cmd: IControlCommand) {
+    private fun sendCommand(cmd: Any) {
         objectMapper.writeValue(writer, cmd)
         writer.write("\n")
         writer.flush()
@@ -37,8 +39,16 @@ class RobotAgent(connectionInfo: RobotConnectionInfo) {
         return cmd.throttleLatest(100, TimeUnit.MILLISECONDS)
             .distinctUntilChanged()
             .observeOn(Schedulers.io())
-            .doOnNext { command(it) }
+            .doOnNext { sendCommand(it) }
             .ignoreElements()
+    }
+
+    fun video(port: Int) {
+        @JsonTypeName("video")
+        @JsonTypeInfo(include = JsonTypeInfo.As.WRAPPER_OBJECT, use = JsonTypeInfo.Id.NAME)
+        data class VideoCommand(val port: Int)
+
+        sendCommand(VideoCommand(port))
     }
 
     fun close() {

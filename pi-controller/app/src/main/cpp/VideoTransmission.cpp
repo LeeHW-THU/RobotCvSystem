@@ -1,4 +1,5 @@
 #include <sstream>
+#include <array>
 #include <string.h>
 #include <stdint.h>
 #include <jni.h>
@@ -8,6 +9,7 @@
 #include <gst/gst.h>
 #include <gst/video/video.h>
 #include <pthread.h>
+#include <unistd.h>
 
 GST_DEBUG_CATEGORY_STATIC (debug_category);
 #define GST_CAT_DEFAULT debug_category
@@ -25,15 +27,16 @@ GST_DEBUG_CATEGORY_STATIC (debug_category);
 #endif
 
 /* Structure to contain all our information, so we can pass it to callbacks */
-typedef struct _CustomData {
+struct CustomData {
     jobject app;            /* Application instance, used to call its methods. A global reference is kept. */
+    jstring remote_host;
     GstElement *pipeline;   /* The running pipeline */
     GMainContext *context;  /* GLib context used to run the main loop */
     GMainLoop *main_loop;   /* GLib main loop */
     gboolean initialized;   /* To avoid informing the UI multiple times about the initialization */
     GstElement *video_sink; /* The video sink element which receives VideoOverlay commands */
     ANativeWindow *native_window; /* The Android native window where video will be rendered */
-} CustomData;
+};
 
 /* These global variables cache values which are not changing during execution */
 static pthread_t gst_app_thread;
@@ -135,6 +138,9 @@ static void check_initialization_complete(CustomData *data) {
         /* The main loop is running and we received a native window, inform the sink about it */
         gst_video_overlay_set_window_handle(GST_VIDEO_OVERLAY(data->video_sink), (guintptr) data->native_window);
 
+        GST_DEBUG("Setting state to PLAYING");
+        gst_element_set_state(data->pipeline, GST_STATE_PLAYING);
+
         env->CallVoidMethod(data->app, on_gstreamer_initialized_method_id);
         if (env->ExceptionCheck()) {
             GST_ERROR("Failed to call Java method");
@@ -146,6 +152,12 @@ static void check_initialization_complete(CustomData *data) {
 
 /* Main method for the native code. This is executed on its own thread. */
 static void *app_function(void *userdata) {
+    errno = 0;
+    int new_nice = nice(-10);
+    GST_DEBUG("new nice: %d", new_nice);
+    if (errno != 0) {
+        GST_WARNING("nice failed. %d", errno);
+    }
     GstBus *bus;
     CustomData *data = (CustomData *) userdata;
     GSource *bus_source;
@@ -157,13 +169,17 @@ static void *app_function(void *userdata) {
     data->context = g_main_context_new();
     g_main_context_push_thread_default(data->context);
 
+    auto env = get_jni_env();
+
     /* Build pipeline */
+    const char *remote_host = env->GetStringUTFChars(data->remote_host, nullptr);
     std::stringstream pipelineStr;
-    pipelineStr << "rtpbin name=rtpbin do-retransmission=true latency=70 " <<
-                "udpsrc port=5000 ! application/x-rtp,media=video,payload=96,clock-rate=90000,encoding-name=H264 ! rtpbin.recv_rtp_sink_0 "
+    pipelineStr << "rtpbin name=rtpbin do-retransmission=true latency=200 " <<
+                "udpsrc port=0 name=videoudpsrc ! application/x-rtp,media=video,payload=96,clock-rate=90000,encoding-name=H264 ! rtpbin.recv_rtp_sink_0 "
                 <<
                 "rtpbin. ! rtph264depay ! decodebin ! autovideosink sync=false " <<
-                "rtpbin.send_rtcp_src_0 ! udpsink port=5005 host=192.168.137.93 sync=false async=false";
+                "rtpbin.send_rtcp_src_0 ! udpsink port=7729 host=" << remote_host << " sync=false async=false";
+    env->ReleaseStringUTFChars(data->remote_host, remote_host);
     data->pipeline = gst_parse_launch(pipelineStr.str().c_str(), &error);
     if (error) {
         gchar *message = g_strdup_printf("Unable to build pipeline: %s", error->message);
@@ -219,11 +235,18 @@ static void *app_function(void *userdata) {
 static void gst_native_init(JNIEnv *env, jobject thiz) {
     CustomData *data = g_new0(CustomData, 1);
     SET_CUSTOM_DATA (env, thiz, custom_data_field_id, data);
-    GST_DEBUG_CATEGORY_INIT(debug_category, "tutorial-3", 0, "Android tutorial 3");
-    gst_debug_set_threshold_for_name("tutorial-3", GST_LEVEL_DEBUG);
+    GST_DEBUG_CATEGORY_INIT(debug_category, log_tag, 0, "pi-controller video transmission");
+    gst_debug_set_threshold_for_name(log_tag, GST_LEVEL_DEBUG);
     GST_DEBUG("Created CustomData at %p", data);
     data->app = env->NewGlobalRef(thiz);
     GST_DEBUG("Created GlobalRef for app object at %p", data->app);
+}
+
+static void gst_native_start(JNIEnv *env, jobject thiz, jstring remote_host) {
+    CustomData *data = GET_CUSTOM_DATA (env, thiz, custom_data_field_id);
+    if (!data) return;
+
+    data->remote_host = (jstring) env->NewGlobalRef(remote_host);
     pthread_create(&gst_app_thread, NULL, &app_function, data);
 }
 
@@ -237,26 +260,11 @@ static void gst_native_finalize(JNIEnv *env, jobject thiz) {
     pthread_join(gst_app_thread, NULL);
     GST_DEBUG("Deleting GlobalRef for app object at %p", data->app);
     env->DeleteGlobalRef(data->app);
+    env->DeleteGlobalRef(data->remote_host);
     GST_DEBUG("Freeing CustomData at %p", data);
     g_free(data);
     SET_CUSTOM_DATA (env, thiz, custom_data_field_id, NULL);
     GST_DEBUG("Done finalizing");
-}
-
-/* Set pipeline to PLAYING state */
-static void gst_native_play(JNIEnv *env, jobject thiz) {
-    CustomData *data = GET_CUSTOM_DATA (env, thiz, custom_data_field_id);
-    if (!data) return;
-    GST_DEBUG("Setting state to PLAYING");
-    gst_element_set_state(data->pipeline, GST_STATE_PLAYING);
-}
-
-/* Set pipeline to PAUSED state */
-static void gst_native_pause(JNIEnv *env, jobject thiz) {
-    CustomData *data = GET_CUSTOM_DATA (env, thiz, custom_data_field_id);
-    if (!data) return;
-    GST_DEBUG("Setting state to PAUSED");
-    gst_element_set_state(data->pipeline, GST_STATE_PAUSED);
 }
 
 /* Static class initializer: retrieve method and field IDs */
@@ -313,16 +321,26 @@ static void gst_native_surface_finalize(JNIEnv *env, jobject thiz) {
     data->initialized = FALSE;
 }
 
+static jint native_get_port(JNIEnv *env, jobject thiz) {
+    CustomData *data = GET_CUSTOM_DATA (env, thiz, custom_data_field_id);
+    if (!data) return -1;
+
+    auto udpsrc = gst_bin_get_by_name(GST_BIN(data->pipeline), "videoudpsrc");
+    gint port;
+    g_object_get(G_OBJECT(udpsrc), "port", &port, NULL);
+    return port;
+}
+
 /* List of implemented native methods */
-static JNINativeMethod native_methods[] = {
-        {"nativeInit",            "()V",                   (void *) gst_native_init},
-        {"nativeFinalize",        "()V",                   (void *) gst_native_finalize},
-        {"nativePlay",            "()V",                   (void *) gst_native_play},
-        {"nativePause",           "()V",                   (void *) gst_native_pause},
-        {"nativeSurfaceInit",     "(Ljava/lang/Object;)V", (void *) gst_native_surface_init},
-        {"nativeSurfaceFinalize", "()V",                   (void *) gst_native_surface_finalize},
-        {"nativeClassInit",       "()Z",                   (void *) gst_native_class_init}
-};
+static std::array<JNINativeMethod, 7> native_methods = {{
+                                                                {"nativeInit", "()V", (void *) gst_native_init},
+                                                                {"nativeStart", "(Ljava/lang/String;)V", (void *) gst_native_start},
+                                                                {"nativeFinalize", "()V", (void *) gst_native_finalize},
+                                                                {"nativeSurfaceInit", "(Ljava/lang/Object;)V", (void *) gst_native_surface_init},
+                                                                {"nativeSurfaceFinalize", "()V", (void *) gst_native_surface_finalize},
+                                                                {"nativeClassInit", "()Z", (void *) gst_native_class_init},
+                                                                {"nativeGetPort", "()I", (void *) native_get_port}
+                                                        }};
 
 /* Library initializer */
 jint JNI_OnLoad(JavaVM *vm, void *reserved) {
@@ -335,7 +353,7 @@ jint JNI_OnLoad(JavaVM *vm, void *reserved) {
         return 0;
     }
     jclass klass = env->FindClass("cn/huww98/picontroller/Gstreamer");
-    env->RegisterNatives(klass, native_methods, G_N_ELEMENTS(native_methods));
+    env->RegisterNatives(klass, native_methods.data(), native_methods.size());
 
     pthread_key_create(&current_jni_env, detach_current_thread);
 
