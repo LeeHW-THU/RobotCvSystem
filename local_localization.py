@@ -42,6 +42,7 @@ def neff(weights):
     return 1. / np.sum(np.square(weights))
 
 
+
 def simple_resample(particles, weights):
     N = len(particles)
     cumulative_sum = np.cumsum(weights)
@@ -94,6 +95,7 @@ def run_pf(N, sensor_std_err=0.1):
     weights = np.zeros(N)
     robot_pos = np.array(0.)
     xs = []
+    print("Create maps of 0 to %s"%round(marklocal))
     while True:
         key = readkey()
         if key=='p':
@@ -126,7 +128,7 @@ def run_pf(N, sensor_std_err=0.1):
 
         mu, var = estimate(particles, weights)
         xs.append(mu)
-        print('estimated position and variance:\n\t', mu, var)
+        print("Get the current car position as follows : %s" %mu)
 
 
 
