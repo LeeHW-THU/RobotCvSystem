@@ -1,0 +1,23 @@
+pins:
+  motor:
+    left:
+      forward: 1
+      backward: 4
+    right:
+      forward: 5
+      backward: 6
+  ultrasonic:
+    trigger: 28
+    echo: 29
+
+speed: 0.7
+control_interval: 0.1
+distance_setpoint: 0.4
+
+normal_mode:
+  pid:
+    kp: -1.5
+    ti: 20
+    td: 1
+  median_filter:
+    window_size: 5
