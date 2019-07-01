@@ -1,0 +1,49 @@
+{
+    "ArucoDict":10,
+    "MapName":"Test_1",
+    "ConnectionNodeNum":2,
+    "AisleList":[
+        {
+            "AisleName":"Aisle1",
+            "HeadNodeID":null,
+            "EndNodeID":0,
+            "Length":8.0,
+            "Right":[
+                {"Name":"Room1", "ArucoID":null, "Distance":3.0}
+            ],
+            "Left":[]
+        },
+        {
+            "AisleName":"Aisle2",
+            "HeadNodeID":0,
+            "EndNodeID":null,
+            "Length":10.0,
+            "Right":[
+                {"Name":"Room2", "ArucoID":null, "Distance":6.0}
+            ],
+            "Left":[]
+        },
+        {
+            "AisleName":"Aisle3",
+            "HeadNodeID":0,
+            "EndNodeID":1,
+            "Length":6.5,
+            "Right":[
+                {"Name":"Room4", "ArucoID":null, "Distance":2.5}
+            ],
+            "Left":[
+                {"Name":"Room3", "ArucoID":null, "Distance":3.5}
+            ]
+        },
+        {
+            "AisleName":"Aisle4",
+            "HeadNodeID":1,
+            "EndNodeID":0,
+            "Length":7.0,
+            "Right":[
+                {"Name":"Room5", "ArucoID":null, "Distance":7.0}
+            ],
+            "Left":[]
+        }
+    ]
+}
