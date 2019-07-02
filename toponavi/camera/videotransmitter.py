@@ -1,5 +1,6 @@
 import logging
 import asyncio
+import pathlib
 
 import zmq
 import zmq.asyncio
@@ -13,9 +14,12 @@ class VideoTransmitter:
         self.zmq_ctx = zmq.asyncio.Context()
         self._config = config
 
+        socket_dir = pathlib.Path(config['data_socket']).parent
+        socket_dir.mkdir(parents=True, exist_ok=True)
+
         self.data_socket = zmq.Context.instance().socket(zmq.PUB)
         self.data_socket.set_hwm(3)
-        self.data_socket.bind(config['data_socket'])
+        self.data_socket.bind('ipc://' + config['data_socket'])
         self.data_task = None
 
     async def run(self):
@@ -23,7 +27,7 @@ class VideoTransmitter:
 
     async def command(self):
         cmd_socket = self.zmq_ctx.socket(zmq.ROUTER)
-        cmd_socket.bind(self._config['command_socket'])
+        cmd_socket.bind('ipc://' + self._config['command_socket'])
         while True:
             dealer_id, *msg = await cmd_socket.recv_multipart()
             cmd = msg[0].decode()

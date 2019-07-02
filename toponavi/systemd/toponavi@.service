@@ -1,0 +1,11 @@
+[Unit]
+Description=TopoNavi system - %i
+PartOf=toponavi.service
+
+[Service]
+WorkingDirectory=/home/pi/toponavi
+User=pi
+ExecStart=/usr/bin/python3 -m %i
+Restart=on-failure
+RestartSec=1s
+RuntimeDirectory=toponavi

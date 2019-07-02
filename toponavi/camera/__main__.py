@@ -1,5 +1,6 @@
 import asyncio
 import pathlib
+import logging
 
 import yaml
 
@@ -12,5 +13,6 @@ async def main():
     await transmitter.run()
 
 if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO)
     loop = asyncio.get_event_loop()
     loop.run_until_complete(main())

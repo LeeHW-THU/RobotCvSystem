@@ -1,5 +1,5 @@
-command_socket: ipc:///run/toponavi/camera/command.ipc
-data_socket: ipc:///run/toponavi/camera/raw.ipc
+command_socket: /run/toponavi/camera/command.ipc
+data_socket: /run/toponavi/camera/raw.ipc
 
 camera:
   width: 1296
