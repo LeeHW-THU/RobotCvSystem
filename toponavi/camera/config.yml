@@ -1,0 +1,7 @@
+command_socket: ipc:///run/toponavi/camera/command.ipc
+data_socket: ipc:///run/toponavi/camera/raw.ipc
+
+camera:
+  width: 1296
+  height: 972
+  framerate: 10
