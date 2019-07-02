@@ -1,40 +1,6 @@
 import json
 import numpy as np
 # ==================================================================== #
-# class Room:
-    def __init__(self, arucoID, name=None):
-        self.name = name
-        self.arucoID = arucoID # a int obj for ARUCO marker ID
-        pass
-
-
-# ==================================================================== #
-# class Aisle:
-    def __init__(self, arucoIDs, name=None):
-        '''
-        Args:
-            arucoIDs: a tuple(HeadArucoID, EndArucoID)
-        '''        
-        self.name = name
-        self.arucoIDs = arucoIDs
-        self.roomList = [] # a list of dict{'RoomObj', 'DistanceToHead'}
-        pass
-    
-    def findRoom(self, roomName):
-        for room in self.roomList:
-            if room["RoomObj"].name == roomName:
-                return i["RoomObj"]
-        return None
-
-
-# ==================================================================== #
-# class ConNode:
-    def __init__(self, name):
-        self.name = name
-        pass
-
-
-# ==================================================================== #
 class Map:
     def __init__(self, mapFilename):
         self.map = None
@@ -77,16 +43,16 @@ class Map:
                 print("Save map to "+mapFilename+" complete!")
         pass
 
-def findPos(map,name):
-    for aisle in map.map["AisleList"]:
-        for room in aisle["Left"]:
-            if room["Name"] == name:
-                return (aisle,room,0)                
-        for room in aisle["Right"]:
-            if room["Name"] == name:
-                return (aisle,room,1)
-    print("Cannot find room: "+name)
-    return None
+    def findPos(self,name):
+        for aisle in self.map["AisleList"]:
+            for room in aisle["Left"]:
+                if room["Name"] == name:
+                    return (aisle,room,0)                
+            for room in aisle["Right"]:
+                if room["Name"] == name:
+                    return (aisle,room,1)
+        print("Cannot find room: "+name)
+        return None
 
 def planPath(map, staName, desName):
     '''
@@ -95,8 +61,8 @@ def planPath(map, staName, desName):
         des: string
     '''
     INF = float('inf') 
-    staPos = findPos(map,staName)
-    desPos = findPos(map,desName)
+    staPos = map.findPos(staName)
+    desPos = map.findPos(desName)
     # print("staPos",staPos)
     # print("desPos",desPos)
     staConNode = [staPos[0]["HeadNodeID"],staPos[0]["EndNodeID"]]
