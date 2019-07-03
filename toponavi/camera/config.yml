@@ -5,3 +5,4 @@ camera:
   width: 1296
   height: 972
   framerate: 10
+  frame_size: 1920768 # got from raspividyuv --verbose

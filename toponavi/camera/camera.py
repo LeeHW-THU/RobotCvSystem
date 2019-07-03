@@ -6,7 +6,6 @@ logger = logging.getLogger('camera')
 class Camera:
     def __init__(self, config):
         self._config = config
-        self._frame_size = int(config['width'] * config['height'] * 1.5)
         self.raspivid_process = None
         self.opened = False
 
@@ -32,7 +31,7 @@ class Camera:
     async def get_frame(self):
         if self.raspivid_process is None:
             raise RuntimeError('Use "async with"')
-        data = await self.raspivid_process.stdout.readexactly(self._frame_size)
+        data = await self.raspivid_process.stdout.readexactly(self._config['frame_size'])
         return data
 
     async def dispose(self):
