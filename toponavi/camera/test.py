@@ -23,10 +23,10 @@ def main():
         config = yaml.safe_load(ymlfile)
     ctx = zmq.Context()
     cmd_socket = ctx.socket(zmq.DEALER)
-    cmd_socket.connect(config['command_socket'])
+    cmd_socket.connect('ipc://' + config['command_socket'])
     data_socket = ctx.socket(zmq.SUB)
     data_socket.setsockopt(zmq.SUBSCRIBE, b'')
-    data_socket.connect(config['data_socket'])
+    data_socket.connect('ipc://' + config['data_socket'])
 
     def test(message_count):
         cmd_socket.send_string('start')

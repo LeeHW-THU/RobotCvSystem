@@ -10,14 +10,14 @@ from .camera import Camera
 logger = logging.getLogger('VideoTransmitter')
 
 class VideoTransmitter:
-    def __init__(self, config: dict):
-        self.zmq_ctx = zmq.asyncio.Context()
+    def __init__(self, config: dict, zmq_context=None):
+        self.zmq_ctx = zmq_context or zmq.asyncio.Context.instance()
         self._config = config
 
         socket_dir = pathlib.Path(config['data_socket']).parent
         socket_dir.mkdir(parents=True, exist_ok=True)
 
-        self.data_socket = zmq.Context.instance().socket(zmq.PUB)
+        self.data_socket = self.zmq_ctx.socket(zmq.PUB)
         self.data_socket.set_hwm(3)
         self.data_socket.bind('ipc://' + config['data_socket'])
         self.data_task = None
