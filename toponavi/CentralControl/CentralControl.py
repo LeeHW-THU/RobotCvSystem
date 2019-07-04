@@ -25,10 +25,19 @@ class CentralControl():
         self.path_data = []
 
         #Temp target location data from path_data to Navigation
-        self.tar_dire = '0'
+        #--- Target direction: diricetion('+', '-') or angle
+        #--- Target destination: marker_id
+        self.tar_dire = '+'
         self.tar_dest = '0'
 
+        #Current direction and location data
+        #--- Current direction: '+', '-'
+        #--- Current status: 'arr', 'nar'
+        self.cur_dire = '+'
+        self.cur_location = 'nar'
+
         #Motion data from Navigation to Executor
+        #--- Motion status: start, stop, turn
         self.executor_status = 0
         self.executor_angle = json.dumps({'angle': 0})
 
@@ -47,8 +56,8 @@ class CentralControl():
             self.path_data.pop(0)
             self.path_data.pop(0)
         else:
-            self.tar_dire = '0'
-            self.tar_dest = '0'
+            self.tar_dire = '00'
+            self.tar_dest = '00'
 
 
     #Set the motion status and motion angle to executor    
@@ -79,6 +88,7 @@ class CentralControl():
         socket.send_multipart([b'path', self.source.encode(), self.destination.encode()] ) 
         self.path_data = socket.recv().split()
         print(self.path_data)
+
     
     #Send the tmp destination
     #--- Module: CentralControl/Location
@@ -103,31 +113,11 @@ class CentralControl():
         socket = context.socket(zmq.SUB)
         socket.connect(endpoint)
         socket.setsockopt(zmq.SUBSCRIBE, b'')
-        while True:
-            self.set_target_data()
-            if self.tar_dire != '+' and self.tar_dire != '-':
-                self.set_executor_angle(float(self.tar_dire))
-                self.set_executor_status(3)
-                time.sleep(5)
-            
+        while True:         
             loc_data = json.loads(socket.recv())
             print(loc_data)
-            direction = loc_data['direction']
-            location = loc_data['location']
-            
-            if direction != self.tar_dire:
-                self.set_executor_angle(3.14)
-                self.set_executor_status(3)
-            elif location == 'nar':
-                self.set_executor_status(1)
-            else:
-                self.set_executor_status(2)
-                if len(self.path_data) >= 2:
-                    self.path_data.pop(0)
-                    self.path_data.pop(0)
-                else:
-                    pass
-                    
+            self.cur_dire = loc_data['direction']
+            self.cur_location = loc_data['location']        
             time.sleep(5)
 
 
@@ -150,6 +140,32 @@ class CentralControl():
                 socket.send_multipart([b'stop', b'none'])
             time.sleep(5)
 
+
+    #Navigation
+    def navigation(self):    
+        while True:
+            if self.tar_dest == '00':                               #Path_data is empty
+                print('Navigation finish.')
+                break
+            else:
+                if self.tar_dire != '+' and self.tar_dire != '-':   #Need to turn
+                    self.set_executor_angle(float(self.tar_dire))
+                    self.set_executor_status(3)                     #turn
+                else:
+                    if self.cur_dire != self.tar_dire:              #The current dircetion is opposite
+                        self.set_executor_angle(3.14)               
+                        self.set_executor_status(3)                 #turn
+                    else:
+                        if self.cur_location == 'nar':              #Not arrive the target marker
+                            self.set_executor_status(1)             #start
+                        elif self.cur_location == 'arr':            #Arrive the target marker
+                            self.set_executor_status(2)             #stop
+                            self.set_target_data()                  #Update the tmp target
+                        else:
+                            self.set_executor_status(2)             #stop
+            time.sleep(5)  
+
+
     #Run the server and client             
     def run(self):
         #client_mc = multiprocessing.Process(target=self.client_map_cc, args=(self.endpoint_map_cc,))
@@ -161,15 +177,16 @@ class CentralControl():
         server_cl = multiprocessing.Process(target=self.server_cc_location, args=(self.test2_endpoint,))
         client_lc = multiprocessing.Process(target=self.client_location_cc, args=(self.test3_endpoint,))
         server_ce = multiprocessing.Process(target=self.server_cc_executor, args=(self.test4_endpoint,))
+        toponavi = multiprocessing.Process(target=self.navigation)
+        
+        self.input_address()    #Get the address    
+        client_mc.start()       #Req the path data
+        server_cl.start()       #Send the tmp target data
+        client_lc.start()       #Recv the location data
+        server_ce.start()       #Send the motion data
 
-        #Get the address
-        self.input_address()
-        #Req the path data
-        client_mc.start()
-
-        server_cl.start()
-        client_lc.start()
-        server_ce.start()
+        self.set_target_data()  #Set the first tmp target destination
+        toponavi.start()        #Start navigation
 
 
 if __name__ == "__main__":
