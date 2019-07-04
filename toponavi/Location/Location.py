@@ -9,7 +9,7 @@ class Location():
         self.map_endpoint = 'ipc:///run/toponavi/MarkerDetector/Location.ipc'
         self.cc_endpoint = ''
         self.marker_data = {}
-        self.localmark = {}
+        self.localmark = None
         self.direction = ''
         self.location = ''
 
@@ -22,14 +22,16 @@ class Location():
 
 
     def set_Location():
-        m = 0
+        m = None
         for i in range(len(self.marker_data["ids"][0,:])):
-            if(self.marker_data["ids"][0,i]==self.localmark[0]):
+            if(self.marker_data["ids"][0,i]==self.localmark):
                 m = i
-        if self.marker_data["dists"][0，i]>20 :
+                if self.marker_data["dists"][0，m]>20 :
+                   self.location = 'nar'
+                else:
+                   self.location = 'arr'
+        if m is None ：
            self.location = 'nar'
-        else:
-           self.location = 'arr'
 
 
     def marker_location_client(self, endpoint):
@@ -41,8 +43,9 @@ class Location():
             data = socket.recv().decode()
             self.marker_data = json.loads(data)
             time.sleep(5)
-            self.set_direction()
-            self.set_Location()
+            if self.marker_data and self.localmark is no None ：
+               self.set_direction()
+               self.set_Location()
 
     def cc_location_client(self, endpoint):
         context = zmq.Context().instance()
@@ -62,9 +65,10 @@ class Location():
             location_date={"direction":self.direction,"location":self.location}
             data = json.dumps(location_date)
             self.socket.send(data.encode())
+            time.sleep(5)
 
     def run(self):
-        ml_client = multiprocessing.Process(target=map_location_client, args=(self.location_endpoint, ))
+        ml_client = multiprocessing.Process(target=map_location_client, args=(self.location_endpoint,))
         cl_client = multiprocessing.Process(target=cc_location_client, args=(self.map_endpoint,))
         cl_server = multiprocessing.Process(target=cc_location_server,args=(self.location_endpoint,))
         cl_client.start()
