@@ -10,15 +10,15 @@ class Location():
         self.cc_endpoint = ''
         self.marker_data = {}
         self.localmark = None
-        self.direction = ''
+        self.direction = None
         self.location = ''
 
 
     def set_direction(self):
         if(self.marker_data["euAngles"][0,0]<=180 and self.marker_data["euAngles"][0，0]>=0):
-           self.direction = '-'
+           self.direction = -1
         else:
-           self.direction = '+'
+           self.direction = 1
 
 
     def set_Location():
