@@ -102,7 +102,7 @@ class StabilizedState(State):
         else:
             context.to_state(TurnState)
             current_angle = math.atan2(context.distance_statistics.aproching_rate, self.speed)
-            context.state.angle(current_angle + self.aproching_angle)
+            context.state.angle(-current_angle - self.aproching_angle)
 
 class DisturbedState(State):
     def __init__(self, config):
@@ -179,10 +179,11 @@ class TurnState(State):
             # 假设匀加速，匀速，匀减速运动，由运动学公式：
             # time = angle/ω + ω/α (angle >= ω^2/α)
             #        2*sqrt(angle/α) otherwise
-            if self._angle > self.omega ** 2 / self.alpha:
-                time_needed = self._angle / self.omega + self.omega / self.alpha
+            angle_abs = abs(self._angle)
+            if angle_abs > self.omega ** 2 / self.alpha:
+                time_needed = angle_abs / self.omega + self.omega / self.alpha
             else:
-                time_needed = 2 * math.sqrt(self._angle / self.alpha)
+                time_needed = 2 * math.sqrt(angle_abs / self.alpha)
             logger.debug('turn time needed: %.2f', time_needed)
             self._end_time = now + time_needed
         if now >= self._end_time:

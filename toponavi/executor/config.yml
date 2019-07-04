@@ -58,7 +58,7 @@ stablized_state:
   max_no_bias: 0.05
   min_no_bias: -0.1
   speed: 0.53
-  aproching_angle: 0.4
+  aproching_angle: 0.25
 
 blind_state:
   restore_thre: 2
