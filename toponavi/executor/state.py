@@ -51,19 +51,29 @@ class NormalState(State):
         super().__init__(config)
         self.disturb_squared_error_thre = config['disturb_squared_error_thre']
         self._distance_setpoint_config = config['distance_setpoint']
-        self.distance_setpoint = self._distance_setpoint_config
+        self._bias_timeout_config = config['bias_timeout']
+        self.distance_setpoint_bias(0)
         self.pid = PID(config['pid'], config['control_interval'])
 
     def distance_setpoint_bias(self, bias):
         self.distance_setpoint = self._distance_setpoint_config + bias
+        if bias != 0:
+            self.bias_timeout = time.time() + self._bias_timeout_config
+        else:
+            self.bias_timeout = float('inf')
         logger.debug('distance_setpoint: %.3f', self.distance_setpoint)
 
     def tick(self, context: StateRunContext):
         if context.distance_statistics.squared_error > self.disturb_squared_error_thre:
             context.to_state(DisturbedState)
             context.turn_command = 0
-        else:
-            context.turn_command = self.pid.error_sample(context.last_ultrasonic_reading - self.distance_setpoint)
+            return
+
+        context.turn_command = self.pid.error_sample(context.last_ultrasonic_reading - self.distance_setpoint)
+        if time.time() > self.bias_timeout:
+            context.to_state(StabilizedState)
+            context.state.no_bias()
+            context.tick()
 
 class StabilizedState(State):
     """
@@ -100,6 +110,7 @@ class DisturbedState(State):
         self.disturb_squared_error_thre = config['disturb_squared_error_thre']
         self.silent_end = time.time() + config['initial_silent']
         self.to_normal_time = time.time() + config['to_normal_time']
+        self.blind_thre = config['blind_thre']
         self._initial = False
 
     def initial(self):
@@ -109,6 +120,9 @@ class DisturbedState(State):
         context.turn_command = 0.0
         now = time.time()
         if now < self.silent_end:
+            return
+        if context.last_ultrasonic_reading > self.blind_thre:
+            context.to_state(BlindState)
             return
         if self._initial or now >= self.to_normal_time:
             context.to_state(StabilizedState)
@@ -164,16 +178,27 @@ class TurnState(State):
             context.turn_command = self._turn_command
             # 假设匀加速，匀速，匀减速运动，由运动学公式：
             # time = angle/ω + ω/α (angle >= ω^2/α)
-            #        sqrt(4*angle/α) otherwise
+            #        2*sqrt(angle/α) otherwise
             if self._angle > self.omega ** 2 / self.alpha:
                 time_needed = self._angle / self.omega + self.omega / self.alpha
             else:
-                time_needed = math.sqrt(4 * self._angle / self.alpha)
+                time_needed = 2 * math.sqrt(self._angle / self.alpha)
+            logger.debug('turn time needed: %.2f', time_needed)
             self._end_time = now + time_needed
         if now >= self._end_time:
             context.turn_command = 0.0
             context.to_state(DisturbedState)
             context.state.initial()
+
+class BlindState(State):
+    def __init__(self, config):
+        super().__init__(config)
+        self.restore_thre = config['restore_thre']
+
+    def tick(self, context: StateRunContext):
+        context.turn_command = 0
+        if context.last_ultrasonic_reading < self.restore_thre:
+            context.to_state(DisturbedState)
 
 class StateController:
     def __init__(self, config):
@@ -185,6 +210,7 @@ class StateController:
             (StabilizedState, 'stablized_state'),
             (ChaosState, 'chaos_state'),
             (TurnState, 'turn_state'),
+            (BlindState, 'blind_state'),
         ]
         for s in states:
             for c in ['control_interval', 'distance_setpoint']:
