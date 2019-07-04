@@ -1,0 +1,77 @@
+{
+    "ArucoDict":10,
+    "MapName":"Test_1",
+    "ConnectionNodeNum":3,
+    "AisleList":[
+        {
+            "AisleName":"Aisle1",
+            "HeadNodeID":null,
+            "HeadMarker":2,
+            "HeadDirection":null,
+            "EndNodeID":0,
+            "EndMarker":1,
+            "EndDirection":270,
+            "Length":8.0,
+            "Right":[
+                {"Name":"Room1", "ArucoID":101, "Distance":3.0}
+            ],
+            "Left":[]
+        },
+        {
+            "AisleName":"Aisle2",
+            "HeadNodeID":0,
+            "HeadMarker":3,
+            "HeadDirection":0,
+            "EndNodeID":null,
+            "EndMarker":4,
+            "EndDirection":null,
+            "Length":10.0,
+            "Right":[
+                {"Name":"Room2", "ArucoID":102, "Distance":6.0}
+            ],
+            "Left":[]
+        },
+        {
+            "AisleName":"Aisle3",
+            "HeadNodeID":1,
+            "HeadMarker":7,
+            "HeadDirection":90,
+            "EndNodeID":2,
+            "EndMarker":8,
+            "EndDirection":270,
+            "Length":6.5,
+            "Right":[
+                {"Name":"Room4", "ArucoID":103, "Distance":2.5}
+            ],
+            "Left":[
+                {"Name":"Room3", "ArucoID":104, "Distance":3.5}
+            ]
+        },
+        {
+            "AisleName":"Aisle4",
+            "HeadNodeID":2,
+            "HeadMarker":9,
+            "HeadDirection":0,
+            "EndNodeID":null,
+            "EndMarker":10,
+            "EndDirection":null,
+            "Length":7.0,
+            "Right":[
+                {"Name":"Room5", "ArucoID":105, "Distance":7.0}
+            ],
+            "Left":[]
+        },
+        {
+            "AisleName":"Aisle5",
+            "HeadNodeID":1,
+            "HeadMarker":6,
+            "HeadDirection":0,
+            "EndNodeID":0,
+            "EndMarker":5,
+            "EndDirection":180,
+            "Length":2.0,
+            "Right":[],
+            "Left":[]
+        }
+    ]
+}
