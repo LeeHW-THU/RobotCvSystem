@@ -56,8 +56,8 @@ class CentralControl():
             self.path_data.pop(0)
             self.path_data.pop(0)
         else:
-            self.tar_dire = '00'
-            self.tar_dest = '00'
+            self.tar_dire = '+'
+            self.tar_dest = '##'
 
 
     #Set the motion status and motion angle to executor    
@@ -71,11 +71,11 @@ class CentralControl():
 
     #Get the input address
     def input_address(self):
-        source = input("Input the source:")
-        destination = input("Input the destination")
+        source = input("Input the source >>> ")
+        destination = input("Input the destination >>> ")
         self.set_address(source, destination)
 
-        
+
     #Recv the path data
     #--- Module: Map/CentralControl
     #--- Socket: REP/REQ
@@ -88,7 +88,8 @@ class CentralControl():
         
         socket.send_multipart([b'path', self.source.encode(), self.destination.encode()] ) 
         self.path_data = socket.recv().split()
-        print(self.path_data)
+        print('path_data:' + self.path_data)
+        self.set_target_data()  #Set the first tmp target destination
 
     
     #Send the tmp destination
@@ -101,8 +102,8 @@ class CentralControl():
         socket.bind(endpoint)
         while True: 
             socket.send(self.tar_dest.encode())
-            print(self.tar_dest)
-            time.sleep(5)
+            print('tar_dest:' + self.tar_dest)
+            time.sleep(3)
 
 
     #Recv the current direction and location
@@ -116,10 +117,10 @@ class CentralControl():
         socket.setsockopt(zmq.SUBSCRIBE, b'')
         while True:         
             loc_data = json.loads(socket.recv())
-            print(loc_data)
+            print('loc_data:' + loc_data)
             self.cur_dire = loc_data['direction']
             self.cur_location = loc_data['location']        
-            time.sleep(5)
+            time.sleep(3)
 
 
     #Send the motion data
@@ -139,13 +140,13 @@ class CentralControl():
                 socket.send_multipart([b'turn', self.executor_angle.encode()])
             else:
                 socket.send_multipart([b'stop', b'none'])
-            time.sleep(5)
+            time.sleep(3)
 
 
     #Navigation
     def navigation(self):    
         while True:
-            if self.tar_dest == '00':                               #Path_data is empty
+            if self.tar_dest == '##':                               #Path_data is empty
                 print('Navigation finish.')
                 break
             else:
@@ -164,7 +165,7 @@ class CentralControl():
                             self.set_target_data()                  #Update the tmp target
                         else:
                             self.set_executor_status(2)             #stop
-            time.sleep(5)  
+            time.sleep(3)  
 
 
     #Run the server and client             
@@ -186,7 +187,6 @@ class CentralControl():
         client_lc.start()       #Recv the location data
         server_ce.start()       #Send the motion data
 
-        self.set_target_data()  #Set the first tmp target destination
         toponavi.start()        #Start navigation
 
 
