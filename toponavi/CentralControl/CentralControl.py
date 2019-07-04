@@ -172,15 +172,16 @@ class CentralControl():
 
     #Run the server and client             
     def run(self):
-        #client_mc = multiprocessing.Process(target=self.client_map_cc, args=(self.endpoint_map_cc,))
-        #server_cl = multiprocessing.Process(target=self.server_cc_location, args=(self.endpoint_cc_location,))
-        #client_lc = multiprocessing.Process(target=self.client_location_cc, args=(self.endpoint_location_cc))
-        #server_ce = multiprocessing.Process(target=self.server_cc_executor, args=(self.endpoint_cc_executor,))
+        client_mc = multiprocessing.Process(target=self.client_map_cc, args=(self.endpoint_map_cc,))
+        server_cl = multiprocessing.Process(target=self.server_cc_location, args=(self.endpoint_cc_location,))
+        client_lc = multiprocessing.Process(target=self.client_location_cc, args=(self.endpoint_location_cc))
+        server_ce = multiprocessing.Process(target=self.server_cc_executor, args=(self.endpoint_cc_executor,))
         
-        client_mc = multiprocessing.Process(target=self.client_map_cc, args=(self.test1_endpoint,))
-        server_cl = multiprocessing.Process(target=self.server_cc_location, args=(self.test2_endpoint,))
-        client_lc = multiprocessing.Process(target=self.client_location_cc, args=(self.test3_endpoint,))
-        server_ce = multiprocessing.Process(target=self.server_cc_executor, args=(self.test4_endpoint,))
+        #client_mc = multiprocessing.Process(target=self.client_map_cc, args=(self.test1_endpoint,))
+        #server_cl = multiprocessing.Process(target=self.server_cc_location, args=(self.test2_endpoint,))
+        #client_lc = multiprocessing.Process(target=self.client_location_cc, args=(self.test3_endpoint,))
+        #server_ce = multiprocessing.Process(target=self.server_cc_executor, args=(self.test4_endpoint,))
+        
         toponavi = multiprocessing.Process(target=self.navigation)
         
         self.input_address()    #Get the address    
