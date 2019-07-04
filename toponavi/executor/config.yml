@@ -10,14 +10,48 @@ pins:
     trigger: 28
     echo: 29
 
-speed: 0.7
+speed_command: 0.7
 control_interval: 0.1
 distance_setpoint: 0.4
 
-normal_mode:
+median_filter:
+  window_size: 5
+
+distance_statisics:
+  window_size: 5
+
+normal_state:
   pid:
     kp: -1.5
     ti: 20
     td: 1
-  median_filter:
-    window_size: 5
+    max_abs_i: 4
+  disturb_squared_error_thre: 0.002
+
+chaos_state:
+  pid:
+    max_abs_command: 0.2
+    kp: -0.5
+    ti: 10
+    td: 0
+    max_abs_i: 2
+  disturb_squared_error_thre: 0.002
+  to_normal_time: 1.0
+
+turn_state:
+  omega: 3 # 角速度
+  alpha: 10 # 角加速度
+  turn_command: 0.5
+
+disturbed_state:
+  initial_silent: 0.5
+  to_normal_time: 1.0
+  disturb_squared_error_thre: 0.002
+
+stablized_state:
+  max_bias: 0.2
+  min_bias: -0.2
+  max_no_bias: 0.05
+  min_no_bias: -0.1
+  speed: 0.53
+  aproching_angle: 0.4
