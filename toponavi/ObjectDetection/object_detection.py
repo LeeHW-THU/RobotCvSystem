@@ -20,7 +20,7 @@ def Massage(mode,data):
 		return frame
 	if mode=="PUB":
 		data=context.socket(zmq.PUB)
-		socket.bind("ipc:///run/toponavi/object_detection/label.ipc")
+		socket.bind("ipc:///run/toponavi/ObjectDetection/label.ipc")
 		socket.send_string(data)
 
 def read_classes(classes_path):
