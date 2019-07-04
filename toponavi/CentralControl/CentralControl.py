@@ -75,6 +75,7 @@ class CentralControl():
         destination = input("Input the destination")
         self.set_address(source, destination)
 
+        
     #Recv the path data
     #--- Module: Map/CentralControl
     #--- Socket: REP/REQ
