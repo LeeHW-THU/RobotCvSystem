@@ -25,19 +25,20 @@ class CentralControl():
         self.path_data = []
 
         #Temp target location data from path_data to Navigation
-        #--- Target direction: diricetion('+', '-') or angle
+        #--- Target direction: diricetion(1/-1) or angle
         #--- Target destination: marker_id
-        self.tar_dire = '+'
-        self.tar_dest = '0'
+        self.tar_dire = 1
+        self.tar_dest = 0
 
         #Current direction and location data
-        #--- Current direction: '+', '-'
-        #--- Current status: 'arr', 'nar'
-        self.cur_dire = '+'
+        #--- Current direction: 1/-1
+        #--- Current status: 'arr'/'nar'
+        self.cur_dire = 1
         self.cur_location = 'nar'
 
         #Motion data from Navigation to Executor
         #--- Motion status: start, stop, turn
+        #--- Angle data: radian
         self.executor_status = 0
         self.executor_angle = json.dumps({'angle': 0})
 
@@ -56,8 +57,8 @@ class CentralControl():
             self.path_data.pop(0)
             self.path_data.pop(0)
         else:
-            self.tar_dire = '+'
-            self.tar_dest = '##'
+            self.tar_dire = 1
+            self.tar_dest = 999
 
 
     #Set the motion status and motion angle to executor    
@@ -87,7 +88,8 @@ class CentralControl():
         socket.connect(endpoint)
         
         socket.send_multipart([b'path', self.source.encode(), self.destination.encode()] ) 
-        self.path_data = socket.recv().split()
+        recv_data = socket.recv_json()
+        self.path_data = recv_data['path']
         print('path_data:' + self.path_data)
         self.set_target_data()  #Set the first tmp target destination
 
@@ -150,8 +152,8 @@ class CentralControl():
                 print('Navigation finish.')
                 break
             else:
-                if self.tar_dire != '+' and self.tar_dire != '-':   #Need to turn
-                    self.set_executor_angle(float(self.tar_dire))
+                if self.tar_dire != 1 and self.tar_dire != -1:   #Need to turn
+                    self.set_executor_angle(self.tar_dire * 3.14 / 180)
                     self.set_executor_status(3)                     #turn
                 else:
                     if self.cur_dire != self.tar_dire:              #The current dircetion is opposite
