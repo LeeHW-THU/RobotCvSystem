@@ -62,7 +62,7 @@ class MarkerDetector():
         if ids is not None:
             nMarkers = ids.shape[0]
             if targetID is None:
-                dists = ((tvec*tvec)[:,:,0] + (tvec*tvec)[:,:,2])/1.48
+                dists = ((tvec*tvec)[:,:,0] + (tvec*tvec)[:,:,2] + (tvec*tvec)[:,:,1])/1.2
                 for i in range(nMarkers):
                     dists[i] = math.sqrt(dists[i])
                 euAngels = np.empty((nMarkers,3))
