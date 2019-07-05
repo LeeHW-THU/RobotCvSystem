@@ -11,25 +11,25 @@
             "EndNodeID":0,
             "EndMarker":1,
             "EndDirection":270,
-            "Length":8.0,
+            "Length":3.6,
             "Right":[
-                {"Name":"Room1", "ArucoID":101, "Distance":3.0}
+                {"Name":"Room1", "ArucoID":101, "Distance":0.7}
             ],
             "Left":[]
         },
         {
             "AisleName":"Aisle2",
-            "HeadNodeID":0,
+            "HeadNodeID":1,
             "HeadMarker":3,
             "HeadDirection":0,
             "EndNodeID":null,
             "EndMarker":4,
             "EndDirection":null,
-            "Length":10.0,
-            "Right":[
-                {"Name":"Room2", "ArucoID":102, "Distance":6.0}
-            ],
-            "Left":[]
+            "Length":3.6,
+            "Right":[],
+            "Left":[
+                {"Name":"Room2", "ArucoID":102, "Distance":2.4}
+            ]
         },
         {
             "AisleName":"Aisle3",
@@ -39,37 +39,37 @@
             "EndNodeID":2,
             "EndMarker":8,
             "EndDirection":270,
-            "Length":6.5,
+            "Length":15.6,
             "Right":[
-                {"Name":"Room4", "ArucoID":103, "Distance":2.5}
+                {"Name":"Room3", "ArucoID":104, "Distance":5.4}
             ],
             "Left":[
-                {"Name":"Room3", "ArucoID":104, "Distance":3.5}
+                {"Name":"Room4", "ArucoID":104, "Distance":9.0}
             ]
         },
         {
             "AisleName":"Aisle4",
             "HeadNodeID":2,
             "HeadMarker":9,
-            "HeadDirection":0,
+            "HeadDirection":180,
             "EndNodeID":null,
             "EndMarker":10,
             "EndDirection":null,
-            "Length":7.0,
-            "Right":[
-                {"Name":"Room5", "ArucoID":105, "Distance":7.0}
-            ],
-            "Left":[]
+            "Length":5.4,
+            "Right":[],
+            "Left":[
+                {"Name":"Room5", "ArucoID":105, "Distance":3.6}
+            ]
         },
         {
             "AisleName":"Aisle5",
-            "HeadNodeID":1,
-            "HeadMarker":6,
-            "HeadDirection":0,
-            "EndNodeID":0,
-            "EndMarker":5,
-            "EndDirection":180,
-            "Length":2.0,
+            "HeadNodeID":0,
+            "HeadMarker":5,
+            "HeadDirection":180,
+            "EndNodeID":1,
+            "EndMarker":6,
+            "EndDirection":0,
+            "Length":1.5,
             "Right":[],
             "Left":[]
         }
