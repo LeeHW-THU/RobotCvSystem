@@ -62,7 +62,7 @@ class MarkerDetector():
         if ids is not None:
             nMarkers = ids.shape[0]
             if targetID is None:
-                dists = ((tvec*tvec)[:,:,0] + (tvec*tvec)[:,:,2] + (tvec*tvec)[:,:,1])/1.2
+                dists = ((tvec*tvec)[:,:,0] + (tvec*tvec)[:,:,2] + (tvec*tvec)[:,:,1])/2.91
                 for i in range(nMarkers):
                     dists[i] = math.sqrt(dists[i])
                 euAngels = np.empty((nMarkers,3))
@@ -75,7 +75,7 @@ class MarkerDetector():
                 idx = 0
                 for i in range(nMarkers):
                     if ids[i] == targetID: idx = i
-                dist = math.sqrt(math.pow(tvec[0,0,0],2)+math.pow(tvec[0,0,1],2))/1.48
+                dist = math.sqrt(math.pow(tvec[0,0,0],2)+math.pow(tvec[0,0,1],2)+math.pow(tvec[0,0,2]))/2.91
                 euAngel = rvecToEulerAngel(rvec[idx])
                 dict["ids"].append([targetID])
                 dict["dists"].append([dist.tolist()])
