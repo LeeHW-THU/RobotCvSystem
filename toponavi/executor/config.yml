@@ -14,7 +14,7 @@ pins:
 
 speed_command: 0.7
 control_interval: 0.1
-distance_setpoint: 0.4
+distance_setpoint: 0.5
 
 median_filter:
   window_size: 5
@@ -26,30 +26,30 @@ normal_state:
   pid:
     kp: -1.5
     ti: 20
-    td: 1
+    td: 1.5
     max_abs_i: 4
-  disturb_squared_error_thre: 0.002
+  disturb_squared_error_thre: 0.0008
   bias_timeout: 2
 
 chaos_state:
   pid:
     max_abs_command: 0.2
-    kp: -0.5
+    kp: -1
     ti: 10
     td: 0
     max_abs_i: 2
-  disturb_squared_error_thre: 0.002
-  to_normal_time: 1.0
+  disturb_squared_error_thre: 0.001
+  to_normal_time: 0.5
 
 turn_state:
-  omega: 2.5 # 角速度
-  alpha: 50 # 角加速度
+  omega: 2.6 # 角速度
+  alpha: 10 # 角加速度
   turn_command: 0.5
 
 disturbed_state:
   initial_silent: 0.5
-  to_normal_time: 1.0
-  disturb_squared_error_thre: 0.002
+  to_normal_time: 0.7
+  disturb_squared_error_thre: 0.001
   blind_thre: 5
 
 stablized_state:

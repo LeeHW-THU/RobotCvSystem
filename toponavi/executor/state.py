@@ -124,14 +124,14 @@ class DisturbedState(State):
         if context.last_ultrasonic_reading > self.blind_thre:
             context.to_state(BlindState)
             return
+        if context.distance_statistics.squared_error > self.disturb_squared_error_thre:
+            context.to_state(ChaosState)
+            return
         if self._initial or now >= self.to_normal_time:
             context.to_state(StabilizedState)
             if self._initial:
                 context.state.no_bias()
             context.tick()
-            return
-        if context.distance_statistics.squared_error > self.disturb_squared_error_thre:
-            context.to_state(ChaosState)
             return
 
 class ChaosState(State):
@@ -153,6 +153,7 @@ class ChaosState(State):
         now = time.time()
         if now >= self.to_normal_time:
             context.to_state(StabilizedState)
+            context.tick()
             return
 
 class TurnState(State):
