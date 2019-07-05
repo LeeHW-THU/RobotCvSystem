@@ -174,7 +174,7 @@ class CentralControl():
     def run(self):
         client_mc = multiprocessing.Process(target=self.client_map_cc, args=(self.endpoint_map_cc,))
         server_cl = multiprocessing.Process(target=self.server_cc_location, args=(self.endpoint_cc_location,))
-        client_lc = multiprocessing.Process(target=self.client_location_cc, args=(self.endpoint_location_cc))
+        client_lc = multiprocessing.Process(target=self.client_location_cc, args=(self.endpoint_location_cc,))
         server_ce = multiprocessing.Process(target=self.server_cc_executor, args=(self.endpoint_cc_executor,))
         
         #client_mc = multiprocessing.Process(target=self.client_map_cc, args=(self.test1_endpoint,))
