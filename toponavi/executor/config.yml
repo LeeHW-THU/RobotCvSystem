@@ -1,3 +1,5 @@
+command_socket: /run/toponavi/executor/command.ipc
+
 pins:
   motor:
     left:
@@ -27,6 +29,7 @@ normal_state:
     td: 1
     max_abs_i: 4
   disturb_squared_error_thre: 0.002
+  bias_timeout: 2
 
 chaos_state:
   pid:
@@ -39,14 +42,15 @@ chaos_state:
   to_normal_time: 1.0
 
 turn_state:
-  omega: 3 # 角速度
-  alpha: 10 # 角加速度
+  omega: 2.5 # 角速度
+  alpha: 50 # 角加速度
   turn_command: 0.5
 
 disturbed_state:
   initial_silent: 0.5
   to_normal_time: 1.0
   disturb_squared_error_thre: 0.002
+  blind_thre: 5
 
 stablized_state:
   max_bias: 0.2
@@ -54,4 +58,7 @@ stablized_state:
   max_no_bias: 0.05
   min_no_bias: -0.1
   speed: 0.53
-  aproching_angle: 0.4
+  aproching_angle: 0.25
+
+blind_state:
+  restore_thre: 2

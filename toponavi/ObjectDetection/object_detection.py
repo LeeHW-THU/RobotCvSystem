@@ -2,15 +2,34 @@ import os
 import cv2
 import numpy as np
 import tensorflow as tf
+import multiprocessing
+import zmq
 #屏蔽TensorFlow_Log
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
+def Massage(mode,data):
+	context = zmq.Context()
+	if mode=="SUB":
+		ImgData = context.socket(zmq.SUB)
+		ImgData.set_hwm(3)
+		ImgData.setsockopt(zmq.SUBSCRIBE, b'')
+		ImgData.connect("ipc:///run/toponavi/camera/raw.ipc")
+
+		Img = ImgData.recv(copy=False)
+		frame = np.frombuffer(Img, dtype=np.uint8)[:976*1312]
+		frame = frame.reshape((976,1312))
+		return frame
+	if mode=="PUB":
+		data=context.socket(zmq.PUB)
+		socket.bind("ipc:///run/toponavi/ObjectDetection/label.ipc")
+		socket.send_string(data)
+
 def read_classes(classes_path):
     with open(classes_path) as f:
         class_names = f.readlines()
     class_names = [c.strip() for c in class_names]
     return class_names
 
-def print_boxes(image, out_scores, out_boxes, out_classes, class_names):
+def print_boxes(image, out_scores, out_boxes, out_classes, class_names,need_class):
     h, w, _ = image.shape
     for i, c in reversed(list(enumerate(out_classes))):
         predicted_class = class_names[c]
@@ -29,7 +48,11 @@ def print_boxes(image, out_scores, out_boxes, out_classes, class_names):
             left = max(0, np.floor(left + 0.5).astype('int32'))
             bottom = min(h, np.floor(bottom + 0.5).astype('int32'))
             right = min(w, np.floor(right + 0.5).astype('int32'))
-            print(label,score, (left, top), (right, bottom))
+            
+            #TUDO:Pub to ParticleFilter Module (label)
+            #label-str
+            Massage=Massage("PUB",label)
+            #print(label,score, (left, top), (right, bottom))
 
     return image
 def non_max_suppression(scores, boxes, classes, max_boxes=10, min_score_thresh=0.6):
@@ -65,40 +88,39 @@ def object_detection(image, image_data, sess):
     boxes, scores, classes = np.squeeze(boxes), np.squeeze(scores), np.squeeze(classes).astype(np.int32)
     out_scores, out_boxes, out_classes = non_max_suppression(scores, boxes, classes)
     #输出目标位置
-    image = print_boxes(image, out_scores, out_boxes, out_classes, class_names)
+    class_names = read_classes('./coco_classes.txt')
+    need_class=['bottle','sofa','cup','chair']
+    image = print_boxes(image, out_scores, out_boxes, out_classes, class_names,need_class)
             
     return image
 
 def real_time_image_detect(detection_graph):
     with detection_graph.as_default():
         with tf.Session() as sess:
-            camera = cv2.VideoCapture(0)
-            while camera.isOpened():
-                ret, frame = camera.read() 
+            #TUDO:Sub from Control Module (camera)
+            while True:
+	            frame=Massage("SUB","frame")
+	            image_data = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+	            image_data_expanded = np.expand_dims(image_data, axis=0)
+	            frame = object_detection(frame, image_data_expanded, sess)
+def main():
+	path_to_ckpt = './model.pb'
+	detection_graph = tf.Graph()
+	with detection_graph.as_default():
+		od_graph_def = tf.GraphDef()
+		with tf.gfile.GFile(path_to_ckpt, 'rb') as fid:
+			serialized_graph = fid.read()
+			od_graph_def.ParseFromString(serialized_graph)
+			tf.import_graph_def(od_graph_def, name='')
 
-                if ret:
-                    image = frame
-                    image_data = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-                    image_data_expanded = np.expand_dims(image_data, axis=0)
-                    image = object_detection(image, image_data_expanded, sess)           
-            camera.release()
+	print('----Start Object Detection----')
+	real_time_image_detect(detection_graph)
 
+def run():
+	process = multiprocessing.Process(target=main())
+	process.start()
 if __name__ == '__main__':
+    run()
+    exit()
 
-    path_to_ckpt = './model.pb'
-    
-    detection_graph = tf.Graph()
-    with detection_graph.as_default():
-        od_graph_def = tf.GraphDef()
-        with tf.gfile.GFile(path_to_ckpt, 'rb') as fid:
-            serialized_graph = fid.read()
-            od_graph_def.ParseFromString(serialized_graph)
-            tf.import_graph_def(od_graph_def, name='')
-    
-    # label
-    class_names = read_classes('./coco_classes.txt')
-    #取其中需要识别的类
-    need_class=['bottle','cup','chair','sofa']
-    print('----Start Object Detection----')
-    real_time_image_detect(detection_graph)
   

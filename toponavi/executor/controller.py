@@ -59,17 +59,22 @@ class MedianFilter:
         return statistics.median(self.window)
 
 class PID:
-    def __init__(self, config, sample_interval=0.1):
+    def __init__(self, config: dict, sample_interval=0.1):
         self.kp = config['kp']
         self.ti = config['ti'] / sample_interval
         self.td = config['td'] / sample_interval
+        self.max_abs_command = config.get('max_abs_command', float('inf'))
+        self.max_abs_i = config.get('max_abs_i', float('inf'))
 
         self.i = 0
         self.last_error = None
 
     def error_sample(self, error: float):
         self.i += error
+        self.i = min(max(-self.max_abs_i, self.i), self.max_abs_i)
+
         d = error - self.last_error if self.last_error is not None else 0
         self.last_error = error
 
-        return self.kp * (error + self.i / self.ti + d * self.td)
+        cmd = self.kp * (error + self.i / self.ti + d * self.td)
+        return min(max(-self.max_abs_command, cmd), self.max_abs_command)

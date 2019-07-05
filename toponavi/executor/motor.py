@@ -13,6 +13,8 @@ class Motor:
         yield self.backward_pin
 
     def start(self):
+        if self.started:
+            return
         for pin in self._pins():
             wiringpi.pinMode(pin, wiringpi.OUTPUT)
             wiringpi.softPwmCreate(pin, 0, self.MAX_PWM)
