@@ -23,8 +23,8 @@ class CentralControl():
         #self.socekt_ce =
 
         #Address data from input to Map_path
-        self.source = 'Room0'
-        self.destination = 'Room1'
+        self.source = 'Room1'
+        self.destination = 'Room2'
 
         #Path data from Map_path
         self.path_data = []
@@ -121,7 +121,7 @@ class CentralControl():
     def server_cc_executor(self, context=None):
         context = context or zmq.Context().instance()
         self.socket_ce = context.socket(zmq.DEALER)
-        self.socket_ce.bind(self.endpoint_cc_executor)
+        self.socket_ce.connect(self.endpoint_cc_executor)
 
 
     #Navigation
@@ -150,11 +150,11 @@ class CentralControl():
                 break
             else:
                 if self.tar_dire != 1 and self.tar_dire != -1:   #Need to turn
-                    self.set_executor_angle(self.tar_dire * -3.14 / 180)
+                    self.set_executor_angle(self.tar_dire * 3.14 / 180)
                     self.set_executor_status(3)                     #turn
                 else:
                     if self.cur_dire != self.tar_dire:              #The current dircetion is opposite
-                        self.set_executor_angle(3.14)               
+                        self.set_executor_angle(3.14)
                         self.set_executor_status(3)                 #turn
                     else:
                         if self.cur_location == 'nar':              #Not arrive the target marker
