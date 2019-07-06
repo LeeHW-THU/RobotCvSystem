@@ -46,15 +46,15 @@ class ZmqAdapter:
                         pass
                     self._control_task = None
             elif cmd == 'turn':
-                if self._control_task is None:
-                    logger.warning('got turn from %s, unable to turn when stopped', dealer_id)
-                elif len(msg) < 2:
+                if len(msg) < 2:
                     logger.warning('parameters not provided for turn command')
                 else:
-                    parameters = json.loads(msg[1])
+                    parameters = json.loads(msg[1].decode())
                     if 'angle' not in parameters:
                         logger.warning('angle not provided for turn command')
                     else:
-                        self._executor.controller.turn(parameters['angle'])
+                        angle = parameters['angle']
+                        logger.info('got turn from %s, angle %.3f', dealer_id, angle)
+                        self._executor.controller.turn(angle)
             else:
                 logger.warning('got invalid command %s from %s', cmd, dealer_id)

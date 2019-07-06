@@ -22,9 +22,12 @@ class Location():
         if len(self.marker_data["euAngles"]):
             if(self.marker_data["euAngles"][0][0]<=175 and self.marker_data["euAngles"][0][0]>=120):
                 self.direction = 1
-            if(self.marker_data["euAngles"][0][0]<=-120 and self.marker_data["euAngles"][0][0]>=-175):
+            elif(self.marker_data["euAngles"][0][0]<=-120 and self.marker_data["euAngles"][0][0]>=-175):
                 self.direction = -1
-
+            else:
+                self.direction = None
+        else:
+            self.direction = None
 
     def set_Location(self):
         m = None
@@ -46,7 +49,6 @@ class Location():
         socket.setsockopt(zmq.SUBSCRIBE, b'')
         f = open("result.json","w")
         while True:
-            self.direction = None
             data = socket.recv_json()
             json.dump(data, f)
             self.marker_data = data
@@ -56,6 +58,9 @@ class Location():
             if (self.marker_data) and (self.localmark is not None) :
                 self.set_direction()
                 self.set_Location()
+            else:
+                self.direction = None
+                self.location = 'nar'
             print(self.direction)
 
     def cc_location_client(self, endpoint):

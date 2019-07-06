@@ -100,7 +100,7 @@ class CentralControl():
         #Socket for send the motion data
         context = context or zmq.Context.instance()
         self.socket_ce = context.socket(zmq.DEALER)
-        self.socket_ce.connect(self.endpoint_cc_executor)        
+        self.socket_ce.connect(self.endpoint_cc_executor)
 
 
     #Recv the path data from Map
@@ -113,7 +113,7 @@ class CentralControl():
         recv_data = self.socket_mc.recv_json()
         self.path_data = recv_data['path']
         print('path_data:', self.path_data)
-        self.set_target_data()  #Set the first tmp target destination        
+        self.set_target_data()  #Set the first tmp target destination
 
 
     #Send the tar_dest to Location
@@ -122,7 +122,7 @@ class CentralControl():
     #--- Pub Data: tar_dest
     def send_tar_dest(self):
         self.socket_cl.send_string(str(self.tar_dest))
-        print('send tar_dest:', self.tar_dest)        
+        print('send tar_dest:', self.tar_dest)
 
 
     #Recv the loc_data from Location
@@ -133,7 +133,7 @@ class CentralControl():
         loc_data = self.socket_lc.recv_json()
         print('loc_data:', loc_data)
         self.cur_dire = loc_data['direction']
-        self.cur_location = loc_data['location']        
+        self.cur_location = loc_data['location']
 
 
     #Send motion data to executor
@@ -148,8 +148,8 @@ class CentralControl():
         elif self.executor_status == 3:
             self.socket_ce.send_multipart([b'turn', self.executor_angle.encode()])
         else:
-            self.socket_ce.send_multipart([b'stop', b'none'])  
-        print('Send executor data:', self.executor_status)                  
+            self.socket_ce.send_multipart([b'stop', b'none'])
+        print('Send executor data:', self.executor_status)
 
 
     #Navigation
@@ -173,7 +173,9 @@ class CentralControl():
                     self.set_executor_angle(self.tar_dire * 3.14 / 180)
                     self.set_executor_status(3)                     #turn
                 else:
-                    if self.cur_dire != self.tar_dire:              #The current dircetion is opposite
+                    if self.cur_dire is None:
+                        self.set_executor_status(1)
+                    elif self.cur_dire != self.tar_dire:              #The current dircetion is opposite
                         self.set_executor_angle(3.14)
                         self.set_executor_status(3)                 #turn
                     else:
@@ -190,7 +192,7 @@ class CentralControl():
             if(self.cur_status != self.executor_status):
                 self.send_motion_data()
                 self.cur_status = self.executor_status
-                print('Send exector_status')
+                print('Send exector_status', self.executor_status)
 
 
     #Run
