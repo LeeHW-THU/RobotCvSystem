@@ -22,20 +22,29 @@ class ZmqAdapter:
         self._executor = Executor(config)
         self._control_task = None
 
+    def _start_control(self):
+        if self.control_started:
+            return
+        self._control_task = asyncio.ensure_future(self._executor.run())
+
+    @property
+    def control_started(self):
+        return self._control_task is not None
+
     async def run(self):
         logger.info('starting listening command')
         while True:
             dealer_id, *msg = await self._command_socket.recv_multipart()
             cmd = msg[0].decode()
             if cmd == 'start':
-                if self._control_task is None:
-                    logger.info('got start from %s, starting', dealer_id)
-                    self._control_task = asyncio.ensure_future(self._executor.run())
-                else:
+                if self.control_started:
                     logger.info('got start from %s, ignored, already started', dealer_id)
+                else:
+                    logger.info('got start from %s, starting', dealer_id)
+                    self._start_control()
 
             elif cmd == 'stop':
-                if self._control_task is None:
+                if not self.control_started:
                     logger.info('got stop from %s, ignored, already stopped', dealer_id)
                 else:
                     logger.info('got stop from %s, stoping', dealer_id)
@@ -55,6 +64,7 @@ class ZmqAdapter:
                     else:
                         angle = parameters['angle']
                         logger.info('got turn from %s, angle %.3f', dealer_id, angle)
+                        self._start_control()
                         self._executor.controller.turn(angle)
             else:
                 logger.warning('got invalid command %s from %s', cmd, dealer_id)

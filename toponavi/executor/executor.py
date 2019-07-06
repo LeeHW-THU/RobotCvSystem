@@ -16,6 +16,7 @@ class Executor:
     async def run(self):
         self.controller.start()
         start_time = time.time()
+        logger.debug('control loop started')
         try:
             while True:
                 distance = self.ultrasonic.measure()
@@ -29,6 +30,6 @@ class Executor:
                 else:
                     start_time = now
                     logger.warning('Overrun control interval by %f seconds', -time_remains)
-        except:
+        finally:
             self.controller.stop()
-            raise
+            logger.debug('control loop exited')
