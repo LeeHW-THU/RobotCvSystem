@@ -21,3 +21,5 @@ sudo systemctl start toponavi
 ```
 
 并可使用`systemctl status "toponavi*"`查看状态
+
+使用`journalctl -u 'toponavi*'`查看日志

@@ -139,7 +139,7 @@ class CentralControl():
         socket = context.socket(zmq.DEALER)
         socket.connect(endpoint)
         while True:
-            print(self.executor_status)
+            print('CC executor_status: ', self.executor_status)
             if self.executor_status == 1:
                 socket.send_multipart([b'start', b'none'])
             elif self.executor_status == 2:

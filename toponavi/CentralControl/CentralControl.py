@@ -9,7 +9,7 @@ class CentralControl():
         #Endpoint for integration
         self.endpoint_map_cc = 'ipc:///run/toponavi/Map/CentralControl.ipc'
         self.endpoint_cc_location = 'ipc:///run/toponavi/CentralControl/Location.ipc'
-        self.endpoint_location_cc = 'ipc:///run/toponavi/Location/CentroControl.ipc'
+        self.endpoint_location_cc = 'ipc:///run/toponavi/Location/CentralControl.ipc'
         self.endpoint_cc_executor = 'ipc:///run/toponavi/executor/command.ipc'
 
         #Create the path
@@ -88,7 +88,7 @@ class CentralControl():
     #--- Rep Data: multipart ['path', source, destination]
     #--- Req Data: string "dire, destination, ..."
     def client_map_cc(self, context=None):
-        context = context or zmq.Context().instance()
+        context = context or zmq.Context.instance()
         self.socket_mc = context.socket(zmq.REQ)
         self.socket_mc.connect(self.endpoint_map_cc)
 
@@ -98,7 +98,7 @@ class CentralControl():
     #--- Socket: PUP/SUB
     #--- Pub Data: tar_dest
     def server_cc_location(self, context=None):
-        context = context or zmq.Context().instance()
+        context = context or zmq.Context.instance()
         self.socket_cl = context.socket(zmq.PUB)
         self.socket_cl.bind(self.endpoint_cc_location)
 
@@ -108,10 +108,10 @@ class CentralControl():
     #--- Socket: PUP/SUB
     #--- Sub Data: {direcetion:'', location:''}
     def client_location_cc(self, context=None):
-        context = context or zmq.Context().instance()
+        context = context or zmq.Context.instance()
         self.socket_lc = context.socket(zmq.SUB)
-        self.socket_lc.connect(self.endpoint_location_cc)
         self.socket_lc.setsockopt(zmq.SUBSCRIBE, b'')
+        self.socket_lc.connect(self.endpoint_location_cc)
 
 
     #Socket for send the motion data
@@ -119,7 +119,7 @@ class CentralControl():
     #--- Socket: DEALER/ROUTRER
     #--- Send Data: multipart ['start/stop/turn', json]
     def server_cc_executor(self, context=None):
-        context = context or zmq.Context().instance()
+        context = context or zmq.Context.instance()
         self.socket_ce = context.socket(zmq.DEALER)
         self.socket_ce.connect(self.endpoint_cc_executor)
 
@@ -139,7 +139,7 @@ class CentralControl():
             print('send tar_dest:', self.tar_dest)
 
             #Recv the loc_data from Location
-            loc_data = json.loads(self.socket_lc.recv())
+            loc_data = self.socket_lc.recv_json()
             print('loc_data:', loc_data)
             self.cur_dire = loc_data['direction']
             self.cur_location = loc_data['location']
@@ -164,7 +164,7 @@ class CentralControl():
                             self.set_target_data()                  #Update the tmp target
                         else:
                             self.set_executor_status(2)             #stop
-            print(self.executor_status)
+            print('CC executor_status: ', self.executor_status)
 
             #Send the data to executor
             if self.executor_status == 1:

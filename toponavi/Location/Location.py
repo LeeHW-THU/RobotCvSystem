@@ -40,7 +40,7 @@ class Location():
 
 
     def marker_location_client(self, endpoint):
-        context = zmq.Context().instance()
+        context = zmq.Context.instance()
         socket = context.socket(zmq.SUB)
         socket.connect(endpoint)
         socket.setsockopt(zmq.SUBSCRIBE, b'')
@@ -59,10 +59,10 @@ class Location():
             print(self.direction)
 
     def cc_location_client(self, endpoint):
-        context = zmq.Context().instance()
+        context = zmq.Context.instance()
         socket = context.socket(zmq.SUB)
-        socket.connect(endpoint)
         socket.setsockopt(zmq.SUBSCRIBE, b'')
+        socket.connect(endpoint)
         while True:
             data = socket.recv_string()
             print('location recieved: ', data)
@@ -70,14 +70,15 @@ class Location():
             # time.sleep(3)
 
     def cc_location_server(self, endpoint):
-        context = zmq.Context().instance()
+        context = zmq.Context.instance()
         socket = context.socket(zmq.PUB)
         socket.bind(endpoint)
         while True:
             location_date={"direction":self.direction,"location":self.location}
             data = json.dumps(location_date)
             socket.send(data.encode())
-            # time.sleep(3)
+            print('location_date sent')
+            time.sleep(1)
 
     def run(self):
         ml_client = threading.Thread(target = self.marker_location_client, args=(self.mark_endpoint,))
