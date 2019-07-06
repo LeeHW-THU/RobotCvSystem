@@ -20,9 +20,9 @@ class Location():
 
     def set_direction(self):
         if len(self.marker_data["euAngles"]):
-            if(self.marker_data["euAngles"][0][0]<=175 and self.marker_data["euAngles"][0][0]>=120):
+            if(self.marker_data["euAngles"][0][0]<=175 and self.marker_data["euAngles"][0][0]>=95):
                 self.direction = 1
-            elif(self.marker_data["euAngles"][0][0]<=-120 and self.marker_data["euAngles"][0][0]>=-175):
+            elif(self.marker_data["euAngles"][0][0]<=-95 and self.marker_data["euAngles"][0][0]>=-175):
                 self.direction = -1
             else:
                 self.direction = None
@@ -34,10 +34,11 @@ class Location():
         for i in range(len(self.marker_data["ids"])):
             if(self.marker_data["ids"][i][0]==self.localmark):
                 m = i
-                if self.marker_data["dists"][m][0]>20 :
+                if self.marker_data["dists"][m][0]>45 :
                     self.location = 'nar'
                 else:
                     self.location = 'arr'
+                    time.sleep(1)
         if m is None :
             self.location = 'nar'
 
@@ -53,7 +54,7 @@ class Location():
             json.dump(data, f)
             self.marker_data = data
             # time.sleep(3)
-            print(self.marker_data["dists"])
+            print(self.marker_data)
             print("localmark", self.localmark)
             if (self.marker_data) and (self.localmark is not None) :
                 self.set_direction()
@@ -68,6 +69,7 @@ class Location():
         socket = context.socket(zmq.SUB)
         socket.setsockopt(zmq.SUBSCRIBE, b'')
         socket.connect(endpoint)
+        
         while True:
             data = socket.recv_string()
             print('location recieved: ', data)
