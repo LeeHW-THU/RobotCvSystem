@@ -1,7 +1,8 @@
 import zmq
 import json
-import multiprocessing
+import threading
 import time
+import pathlib
 
 class Location():
     def __init__(self):
@@ -51,6 +52,7 @@ class Location():
             self.marker_data = data
             # time.sleep(3)
             print(self.marker_data["dists"])
+            print("localmark", self.localmark)
             if (self.marker_data) and (self.localmark is not None) :
                 self.set_direction()
                 self.set_Location()
@@ -63,6 +65,7 @@ class Location():
         socket.setsockopt(zmq.SUBSCRIBE, b'')
         while True:
             data = socket.recv_string()
+            print('location recieved: ', data)
             self.localmark = int(data)
             # time.sleep(3)
 
@@ -77,15 +80,18 @@ class Location():
             # time.sleep(3)
 
     def run(self):
-        ml_client = multiprocessing.Process(target = self.marker_location_client, args=(self.mark_endpoint,))
-#        cl_client = multiprocessing.Process(target = self.cc_location_client, args=(self.cc_endpoint,))
-        cl_server = multiprocessing.Process(target = self.cc_location_server, args=(self.test3,))
-#        cl_server = multiprocessing.Process(target = self.cc_location_server, args=(self.loc_endpoint,))
-        cl_client = multiprocessing.Process(target = self.cc_location_client, args=(self.test2,))
+        ml_client = threading.Thread(target = self.marker_location_client, args=(self.mark_endpoint,))
+        cl_client = threading.Thread(target = self.cc_location_client, args=(self.cc_endpoint,))
+        # cl_server = threading.Thread(target = self.cc_location_server, args=(self.test3,))
+        cl_server = threading.Thread(target = self.cc_location_server, args=(self.loc_endpoint,))
+        # cl_client = threading.Thread(target = self.cc_location_client, args=(self.test2,))
         cl_client.start()
         ml_client.start()
         cl_server.start()
 
 if __name__ == "__main__":
+    socket_dir = pathlib.Path("/run/toponavi/Location")
+    socket_dir.mkdir(parents=True, exist_ok=True)
+
     location_test = Location()
     location_test.run()
