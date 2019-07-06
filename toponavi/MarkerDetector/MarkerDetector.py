@@ -4,7 +4,7 @@ import multiprocessing
 import numpy as np
 import math
 import time
-import cv2  
+import cv2
 import cv2.aruco as aruco
 import json
 import picamera
@@ -18,7 +18,7 @@ class MarkerDetector():
         self.cmdEndpoint = "ipc:///run/toponavi/camera/command.ipc"
         self.markerEndpoint = "ipc://"+self.outSocketPath
 
-        socketDir = pathlib.Path(outSocketPath).parent
+        socketDir = pathlib.Path(self.outSocketPath).parent
         socketDir.mkdir(parents=True, exist_ok=True)
 
         with open(camConfFile, "r") as f:
@@ -28,12 +28,12 @@ class MarkerDetector():
             self.len = 10
             self.w = 1312 # width of frame
             self.h = 976  # heigth of frame
-            self.arucoDict = aruco.Dictionary_get(aruco.DICT_6X6_250)  
+            self.arucoDict = aruco.Dictionary_get(aruco.DICT_6X6_250)
             self.parameters =  aruco.DetectorParameters_create()
-        
+
     def rvecToEulerAngel(self, rvec):
         rMat = cv2.Rodrigues(rvec[0])[0]
-        
+
         sy = math.sqrt(rMat[0,0]*rMat[0,0] + rMat[1,0]*rMat[1,0])
         if(sy<1e-6):
             x = math.atan2(rMat[1,2], rMat[1,1])
@@ -82,25 +82,25 @@ class MarkerDetector():
                 dict["euAngels"].append(enAngels.tolist())
 
         return dict
-            
+
     def capture(self):
         # ======= Used on Pi =========
         import picamera
         camera = picamera.PiCamera()
-        width = 1920    
+        width = 1920
         height = 1088
         camera.resolution = (width, height)
         camera.sharpness = 100
         camera.iso = 800
         camera.brightness = 60
-        frame = np.empty((width*height*3), dtype=np.uint8)  
-        
+        frame = np.empty((width*height*3), dtype=np.uint8)
+
         # ======= Used on PC =========
         # cap = cv2.VideoCapture(0)
         # ret, frame = cap.read()
         # width = frame.shape[1]
         # height = frame.shape[0]
-        
+
         arucoDict = aruco.DICT_6X6_250
         # while True:
         for i in range(1):
@@ -112,10 +112,10 @@ class MarkerDetector():
             cv2.imwrite("cap_img.jpg",output)
             print("cap")
             time.sleep(1)
-    
+
     def main(self):
-        
-        # SUB socket setting 
+
+        # SUB socket setting
         ctx = zmq.Context()
         cmdSocket = ctx.socket(zmq.DEALER)
         cmdSocket.connect(self.cmdEndpoint)
@@ -130,22 +130,22 @@ class MarkerDetector():
 
         cmdSocket.send_string('start')
         count = 0
-        while True:
-            count+=1
-            print(count)
-            data = dataSocket.recv(copy=False)
-            # print("Buffer len: ", len(data.bytes))
-            data = np.frombuffer(data, dtype=np.uint8)[:self.h*self.w]
-            # print("Data shape: ", data.shape)
-            frame = data.reshape((self.h,self.w))
-            # output = cv2.cvtColor(frame, cv2.COLOR_GRAY2BGR)
-            # cv2.imwrite("img_"+str(i)+".jpg", output)
-            resDict = self.detect(frame)
-            # print(resDict)
-            json_data = json.dumps(resDict)
-            outSocket.send_json(json_data)
-
-        cmdSocket.send_string('stop')
+        try:
+            while True:
+                count+=1
+                print(count)
+                data = dataSocket.recv(copy=False)
+                # print("Buffer len: ", len(data.bytes))
+                data = np.frombuffer(data, dtype=np.uint8)[:self.h*self.w]
+                # print("Data shape: ", data.shape)
+                frame = data.reshape((self.h,self.w))
+                # output = cv2.cvtColor(frame, cv2.COLOR_GRAY2BGR)
+                # cv2.imwrite("img_"+str(i)+".jpg", output)
+                resDict = self.detect(frame)
+                print(resDict)
+                outSocket.send_json(resDict)
+        finally:
+            cmdSocket.send_string('stop')
 
 
     def saveImg(self,filename):
@@ -155,7 +155,7 @@ class MarkerDetector():
             cv2.imwrite("img.jpg", output)
         else:
             print("None")
-   
+
     def run(self):
         mainProcess = multiprocessing.Process(target=self.main)
         mainProcess.start()

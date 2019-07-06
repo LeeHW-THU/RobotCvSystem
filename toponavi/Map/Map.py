@@ -18,7 +18,7 @@ class Map:
             self.map = json.load(f)
             print("Loading map from "+mapFilename+" complete!")
             # 构建走廊连接节点的邻接矩阵
-            self.adjMat = np.full((self.map["ConnectionNodeNum"],self.map["ConnectionNodeNum"]), 
+            self.adjMat = np.full((self.map["ConnectionNodeNum"],self.map["ConnectionNodeNum"]),
                                     float('inf'),
                                     dtype=np.float)# 拓展的两个位置用于存放之后进行路径规划时的起点和终点
             for aisle in self.map["AisleList"]:
@@ -49,7 +49,7 @@ class Map:
         for aisle in self.map["AisleList"]:
             for room in aisle["Left"]:
                 if room["Name"] == name:
-                    return (aisle,room,"L")                
+                    return (aisle,room,"L")
             for room in aisle["Right"]:
                 if room["Name"] == name:
                     return (aisle,room,"R")
@@ -57,7 +57,7 @@ class Map:
         return None
 
     def planPath(self, staName, desName):
-        INF = float('inf') 
+        INF = float('inf')
         staPos = self.findPos(staName)
         desPos = self.findPos(desName)
 
@@ -65,7 +65,7 @@ class Map:
         desConNode = [desPos[0]["HeadNodeID"],desPos[0]["EndNodeID"]]
         # print("staConNode",staConNode)
         # print("desConNode",desConNode)
-        if (staPos is not None) and (desPos is not None): 
+        if (staPos is not None) and (desPos is not None):
             # 从原始邻接矩阵初始化本次路径规划用邻接矩阵
             adjMat = self.adjMat.copy()
             idxStaVex = self.map["ConnectionNodeNum"]
@@ -74,7 +74,7 @@ class Map:
             adjMat = np.insert(adjMat, idxStaVex, values=ins, axis=0) # 在原adjMat增加两行
             ins = np.full((2,adjMat.shape[0]),INF)
             adjMat = np.insert(adjMat, idxStaVex, values=ins, axis=1) # 增加两列
-            adjMat[idxStaVex,idxStaVex] = adjMat[idxDesVex,idxDesVex] = 0      
+            adjMat[idxStaVex,idxStaVex] = adjMat[idxDesVex,idxDesVex] = 0
             nVex = adjMat.shape[0]
             if staConNode[0] is not None:
                 adjMat[idxStaVex,staConNode[0]] = staPos[1]["Distance"]
@@ -101,7 +101,7 @@ class Map:
                 temp = None
                 for idxVex in range(nVex):
                     if idxVex in dVexList: continue
-                    if minDist > minDistList[idxVex]: 
+                    if minDist > minDistList[idxVex]:
                         minDist = minDistList[idxVex]
                         aVex = idxVex
                 pathList[aVex].append(aVex)
@@ -110,14 +110,14 @@ class Map:
                 # print("dVexList",dVexList)
                 # 松弛操作
                 temp = adjMat[aVex].copy()+minDistList[aVex]
-                # print("temp",temp) 
+                # print("temp",temp)
                 temp[aVex] = INF # 把节点自身到自身的距离设为INF，方便接下来更新minDistList
                 for i in range(minDistList.shape[0]):
                     if temp[i] < minDistList[i]:
                         minDistList[i] = temp[i]
                         pathList[i] = pathList[aVex].copy()
                 # print("minDistList",minDistList)
-                # print("pathList",pathList) 
+                # print("pathList",pathList)
             if minDistList[idxDesVex] != INF:
                 # pathList[idxDesVex][0] = staPos[1]["ArucoID"]
                 # pathList[idxDesVex][-1] = desPos[1]["ArucoID"]
@@ -134,11 +134,11 @@ class Map:
             nextMk = 0
             nextAisle = staPos[0]
             while i < len(nodeSeq)-1:
-                # get +/- 
-                if nodeSeq[i] == nextAisle["EndNodeID"]: 
+                # get +/-
+                if nodeSeq[i] == nextAisle["EndNodeID"]:
                     direction = 1
                     nextMk = nextAisle["EndMarker"]
-                else: 
+                else:
                     direction = -1
                     nextMk = nextAisle["HeadMarker"]
 
@@ -154,7 +154,7 @@ class Map:
                 # get next aisle
                 # print(nodeSeq[i])
                 # print(nodeSeq[i+1])
-                if i < len(nodeSeq)-2: 
+                if i < len(nodeSeq)-2:
                     for aisle in self.map["AisleList"]:
                         if aisle["HeadNodeID"] == nodeSeq[i]:
                             if aisle["EndNodeID"] == nodeSeq[i+1]:
@@ -218,9 +218,8 @@ class Map:
             print("REQ receive: "+staName+" to "+desName)
             path = self.planPath(staName, desName)
 
-            data = json.dumps(path)
-            repSocket.send_json(data)
-    
+            repSocket.send_json(path)
+
     def run(self):
         mainProcess = multiprocessing.Process(target=self.main)
         mainProcess.start()

@@ -1,6 +1,6 @@
 [Unit]
 Description=TopoNavi system
-Requires=toponavi@camera.service
+Requires=toponavi@camera.service toponavi@executor.service
 
 [Service]
 Type=oneshot

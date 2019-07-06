@@ -1,5 +1,6 @@
 import json
 import multiprocessing
+import threading
 import time
 import pathlib
 import zmq
@@ -22,8 +23,8 @@ class CentralControl():
         self.test4_endpoint = 'ipc:///tmp/4.ipc'
 
         #Address data from input to Map_path
-        self.source = 'room 0'
-        self.destination = 'room 1'
+        self.source = 'Room1'
+        self.destination = 'Room2'
 
         #Path data from Map_path
         self.path_data = []
@@ -94,7 +95,7 @@ class CentralControl():
         socket.send_multipart([b'path', self.source.encode(), self.destination.encode()] )
         recv_data = socket.recv_json()
         self.path_data = recv_data['path']
-        print('path_data:' + self.path_data)
+        print('path_data: ', self.path_data)
         self.set_target_data()  #Set the first tmp target destination
 
 
@@ -177,19 +178,19 @@ class CentralControl():
 
     #Run the server and client
     def run(self):
-        client_mc = multiprocessing.Process(target=self.client_map_cc, args=(self.endpoint_map_cc,))
-        server_cl = multiprocessing.Process(target=self.server_cc_location, args=(self.endpoint_cc_location,))
-        client_lc = multiprocessing.Process(target=self.client_location_cc, args=(self.endpoint_location_cc,))
-        server_ce = multiprocessing.Process(target=self.server_cc_executor, args=(self.endpoint_cc_executor,))
+        # client_mc = multiprocessing.Process(target=self.client_map_cc, args=(self.endpoint_map_cc,))
+        # server_cl = multiprocessing.Process(target=self.server_cc_location, args=(self.endpoint_cc_location,))
+        # client_lc = multiprocessing.Process(target=self.client_location_cc, args=(self.endpoint_location_cc,))
+        # server_ce = multiprocessing.Process(target=self.server_cc_executor, args=(self.endpoint_cc_executor,))
 
-        #client_mc = multiprocessing.Process(target=self.client_map_cc, args=(self.test1_endpoint,))
-        #server_cl = multiprocessing.Process(target=self.server_cc_location, args=(self.test2_endpoint,))
-        #client_lc = multiprocessing.Process(target=self.client_location_cc, args=(self.test3_endpoint,))
-        #server_ce = multiprocessing.Process(target=self.server_cc_executor, args=(self.test4_endpoint,))
+        client_mc = threading.Thread(target=self.client_map_cc, args=(self.endpoint_map_cc,))
+        server_cl = threading.Thread(target=self.server_cc_location, args=(self.endpoint_cc_location,))
+        client_lc = threading.Thread(target=self.client_location_cc, args=(self.endpoint_location_cc,))
+        server_ce = threading.Thread(target=self.server_cc_executor, args=(self.endpoint_cc_executor,))
 
-        toponavi = multiprocessing.Process(target=self.navigation)
+        toponavi = threading.Thread(target=self.navigation)
 
-        self.input_address()    #Get the address
+        #self.input_address()    #Get the address
         client_mc.start()       #Req the path data
         server_cl.start()       #Send the tmp target data
         client_lc.start()       #Recv the location data
