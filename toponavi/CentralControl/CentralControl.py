@@ -16,12 +16,6 @@ class CentralControl():
         socket_dir = pathlib.Path('/run/toponavi/CentralControl')
         socket_dir.mkdir(parents=True, exist_ok=True)
 
-        #Socket
-        #self.socket_mc =
-        #self.socket_cl =
-        #self.socket_lc =
-        #self.socekt_ce =
-
         #Address data from input to Map_path
         self.source = 'Room1'
         self.destination = 'Room2'
@@ -46,6 +40,9 @@ class CentralControl():
         #--- Angle data: radian
         self.executor_status = 0
         self.executor_angle = json.dumps({'angle': 0})
+
+        #Current motion data
+        self.cur_status = 999
 
 
     #Set the address from input
@@ -82,67 +79,90 @@ class CentralControl():
         self.set_address(source, destination)
 
 
-    #Socket for recv the path data
-    #--- Module: Map/CentralControl
-    #--- Socket: REP/REQ
-    #--- Rep Data: multipart ['path', source, destination]
-    #--- Req Data: string "dire, destination, ..."
-    def client_map_cc(self, context=None):
+    #Create the socket
+    def create_socket(self, context=None):
+        #Socket for recv the path data
         context = context or zmq.Context.instance()
         self.socket_mc = context.socket(zmq.REQ)
         self.socket_mc.connect(self.endpoint_map_cc)
 
-
-    #Socket for send the tmp destination
-    #--- Module: CentralControl/Location
-    #--- Socket: PUP/SUB
-    #--- Pub Data: tar_dest
-    def server_cc_location(self, context=None):
+        #Socket for send the tmp destination
         context = context or zmq.Context.instance()
         self.socket_cl = context.socket(zmq.PUB)
         self.socket_cl.bind(self.endpoint_cc_location)
 
-
-    #Socket for recv the current direction and location
-    #--- Module: Location/CentralControl
-    #--- Socket: PUP/SUB
-    #--- Sub Data: {direcetion:'', location:''}
-    def client_location_cc(self, context=None):
+        #Socket for recv the current direction and location
         context = context or zmq.Context.instance()
         self.socket_lc = context.socket(zmq.SUB)
         self.socket_lc.setsockopt(zmq.SUBSCRIBE, b'')
         self.socket_lc.connect(self.endpoint_location_cc)
 
+        #Socket for send the motion data
+        context = context or zmq.Context.instance()
+        self.socket_ce = context.socket(zmq.DEALER)
+        self.socket_ce.connect(self.endpoint_cc_executor)        
 
-    #Socket for send the motion data
+
+    #Recv the path data from Map
+    #--- Module: Map/CentralControl
+    #--- Socket: REP/REQ
+    #--- Rep Data: multipart ['path', source, destination]
+    #--- Req Data: string "dire, destination, ..."
+    def recv_path_data(self):
+        self.socket_mc.send_multipart([b'path', self.source.encode(), self.destination.encode()] )
+        recv_data = self.socket_mc.recv_json()
+        self.path_data = recv_data['path']
+        print('path_data:', self.path_data)
+        self.set_target_data()  #Set the first tmp target destination        
+
+
+    #Send the tar_dest to Location
+    #--- Module: CentralControl/Location
+    #--- Socket: PUP/SUB
+    #--- Pub Data: tar_dest
+    def send_tar_dest(self):
+        self.socket_cl.send_string(str(self.tar_dest))
+        print('send tar_dest:', self.tar_dest)        
+
+
+    #Recv the loc_data from Location
+    #--- Module: Location/CentralControl
+    #--- Socket: PUP/SUB
+    #--- Sub Data: {direcetion:'', location:''}
+    def recv_loc_data(self):
+        loc_data = self.socket_lc.recv_json()
+        print('loc_data:', loc_data)
+        self.cur_dire = loc_data['direction']
+        self.cur_location = loc_data['location']        
+
+
+    #Send motion data to executor
     #--- Module: CentralControl/Executor
     #--- Socket: DEALER/ROUTRER
     #--- Send Data: multipart ['start/stop/turn', json]
-    def server_cc_executor(self, context=None):
-        context = context or zmq.Context.instance()
-        self.socket_ce = context.socket(zmq.DEALER)
-        self.socket_ce.connect(self.endpoint_cc_executor)
+    def send_motion_data(self):
+        if self.executor_status == 1:
+            self.socket_ce.send_multipart([b'start', b'none'])
+        elif self.executor_status == 2:
+            self.socket_ce.send_multipart([b'stop', b'none'])
+        elif self.executor_status == 3:
+            self.socket_ce.send_multipart([b'turn', self.executor_angle.encode()])
+        else:
+            self.socket_ce.send_multipart([b'stop', b'none'])  
+        print('Send executor data:', self.executor_status)                  
 
 
     #Navigation
     def navigation(self):
         #Recv the path data from Map
-        self.socket_mc.send_multipart([b'path', self.source.encode(), self.destination.encode()] )
-        recv_data = self.socket_mc.recv_json()
-        self.path_data = recv_data['path']
-        print('path_data:', self.path_data)
-        self.set_target_data()  #Set the first tmp target destination
+        self.recv_path_data()
 
         while True:
             #Send the tar_dest to Location
-            self.socket_cl.send_string(str(self.tar_dest))
-            print('send tar_dest:', self.tar_dest)
+            self.send_tar_dest()
 
             #Recv the loc_data from Location
-            loc_data = self.socket_lc.recv_json()
-            print('loc_data:', loc_data)
-            self.cur_dire = loc_data['direction']
-            self.cur_location = loc_data['location']
+            self.recv_loc_data()
 
             #Navigate
             if self.tar_dest == '##':                               #Path_data is empty
@@ -164,30 +184,22 @@ class CentralControl():
                             self.set_target_data()                  #Update the tmp target
                         else:
                             self.set_executor_status(2)             #stop
-            print('CC executor_status: ', self.executor_status)
+            print('Set executor_status: ', self.executor_status)
 
-            #Send the data to executor
-            if self.executor_status == 1:
-                self.socket_ce.send_multipart([b'start', b'none'])
-            elif self.executor_status == 2:
-                self.socket_ce.send_multipart([b'stop', b'none'])
-            elif self.executor_status == 3:
-                self.socket_ce.send_multipart([b'turn', self.executor_angle.encode()])
-            else:
-                self.socket_ce.send_multipart([b'stop', b'none'])
+            #Send motion data to executor
+            if(self.cur_status != self.executor_status):
+                self.send_motion_data()
+                self.cur_status = self.executor_status
+                print('Send exector_status')
 
 
-
-    #Run the server and client
+    #Run
     def run(self):
         #Get the address
         #self.input_address()
 
         #Create sockets
-        self.client_map_cc()
-        self.server_cc_location()
-        self.client_location_cc()
-        self.server_cc_executor()
+        self.create_socket()
 
         #Start navigation
         self.navigation()
