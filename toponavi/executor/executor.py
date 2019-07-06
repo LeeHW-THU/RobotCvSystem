@@ -28,6 +28,7 @@ class Executor:
                     await asyncio.sleep(time_remains)
                     start_time += self._control_interval
                 else:
+                    await asyncio.sleep(0) # a chance to cancel
                     start_time = now
                     logger.warning('Overrun control interval by %f seconds', -time_remains)
         finally:
