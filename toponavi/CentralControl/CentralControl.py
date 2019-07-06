@@ -66,10 +66,10 @@ class CentralControl():
             self.tar_dest = 999
 
 
-    #Set the motion status and motion angle to executor    
+    #Set the motion status and motion angle to executor
     def set_executor_status(self, executor_status):
         self.executor_status = executor_status
-    
+
     def set_executor_angle(self, executor_angle):
         angle_data = {'angle': executor_angle}
         self.executor_angle = json.dumps(angle_data)
@@ -111,7 +111,7 @@ class CentralControl():
         context = context or zmq.Context().instance()
         self.socket_lc = context.socket(zmq.SUB)
         self.socket_lc.connect(self.endpoint_location_cc)
-        self.socket_lc.setsockopt(zmq.SUBSCRIBE, b'')   
+        self.socket_lc.setsockopt(zmq.SUBSCRIBE, b'')
 
 
     #Socket for send the motion data
@@ -127,7 +127,7 @@ class CentralControl():
     #Navigation
     def navigation(self):
         #Recv the path data from Map
-        self.socket_mc.send_multipart([b'path', self.source.encode(), self.destination.encode()] ) 
+        self.socket_mc.send_multipart([b'path', self.source.encode(), self.destination.encode()] )
         recv_data = self.socket_mc.recv_json()
         self.path_data = recv_data['path']
         print('path_data:', self.path_data)
@@ -142,7 +142,7 @@ class CentralControl():
             loc_data = json.loads(self.socket_lc.recv())
             print('loc_data:', loc_data)
             self.cur_dire = loc_data['direction']
-            self.cur_location = loc_data['location'] 
+            self.cur_location = loc_data['location']
 
             #Navigate
             if self.tar_dest == '##':                               #Path_data is empty
@@ -175,24 +175,22 @@ class CentralControl():
                 self.socket_ce.send_multipart([b'turn', self.executor_angle.encode()])
             else:
                 self.socket_ce.send_multipart([b'stop', b'none'])
-            
 
 
-    #Run the server and client             
+
+    #Run the server and client
     def run(self):
         #Get the address
-        #self.input_address()  
+        #self.input_address()
 
         #Create sockets
         self.client_map_cc()
         self.server_cc_location()
         self.client_location_cc()
         self.server_cc_executor()
-        
+
         #Start navigation
-        toponavi = multiprocessing.Process(target=self.navigation)
-        toponavi.start()
-        toponavi.join()
+        self.navigation()
 
 
 if __name__ == "__main__":

@@ -1,7 +1,7 @@
-import time
 import asyncio
 import logging
 import json
+import pathlib
 
 import zmq
 import zmq.asyncio
@@ -12,6 +12,9 @@ logger = logging.getLogger('zmq_adapter')
 
 class ZmqAdapter:
     def __init__(self, config):
+        socket_dir = pathlib.Path(config['command_socket']).parent
+        socket_dir.mkdir(parents=True, exist_ok=True)
+
         ctx = zmq.asyncio.Context.instance()
         self._config = config
         self._command_socket = ctx.socket(zmq.ROUTER)
@@ -20,6 +23,7 @@ class ZmqAdapter:
         self._control_task = None
 
     async def run(self):
+        logger.info('starting listening command')
         while True:
             dealer_id, *msg = await self._command_socket.recv_multipart()
             cmd = msg[0].decode()
