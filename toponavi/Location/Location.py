@@ -34,11 +34,11 @@ class Location():
         for i in range(len(self.marker_data["ids"])):
             if(self.marker_data["ids"][i][0]==self.localmark):
                 m = i
-                if self.marker_data["dists"][m][0]>45 :
+                if self.marker_data["dists"][m][0]>50 :
                     self.location = 'nar'
                 else:
                     self.location = 'arr'
-                    time.sleep(1)
+                    time.sleep(1.3)
         if m is None :
             self.location = 'nar'
 
