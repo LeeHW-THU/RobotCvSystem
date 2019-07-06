@@ -11,24 +11,24 @@
             "EndNodeID":0,
             "EndMarker":1,
             "EndDirection":270,
-            "Length":3.6,
+            "Length":8.0,
             "Right":[
-                {"Name":"Room1", "ArucoID":101, "Distance":0.7}
+                {"Name":"Room1", "ArucoID":101, "Distance":3.0}
             ],
             "Left":[]
         },
         {
             "AisleName":"Aisle2",
-            "HeadNodeID":1,
+            "HeadNodeID":0,
             "HeadMarker":3,
             "HeadDirection":0,
             "EndNodeID":null,
             "EndMarker":4,
             "EndDirection":null,
-            "Length":3.6,
+            "Length":10.0,
             "Right":[],
             "Left":[
-                {"Name":"Room2", "ArucoID":102, "Distance":2.4}
+                {"Name":"Room2", "ArucoID":102, "Distance":6.0}
             ]
         },
         {
@@ -39,37 +39,37 @@
             "EndNodeID":2,
             "EndMarker":8,
             "EndDirection":270,
-            "Length":15.6,
+            "Length":6.5,
             "Right":[
-                {"Name":"Room3", "ArucoID":104, "Distance":5.4}
+                {"Name":"Room4", "ArucoID":103, "Distance":2.5}
             ],
             "Left":[
-                {"Name":"Room4", "ArucoID":104, "Distance":9.0}
+                {"Name":"Room3", "ArucoID":104, "Distance":3.5}
             ]
         },
         {
             "AisleName":"Aisle4",
             "HeadNodeID":2,
             "HeadMarker":9,
-            "HeadDirection":180,
+            "HeadDirection":0,
             "EndNodeID":null,
             "EndMarker":10,
             "EndDirection":null,
-            "Length":5.4,
-            "Right":[],
-            "Left":[
-                {"Name":"Room5", "ArucoID":105, "Distance":3.6}
-            ]
+            "Length":7.0,
+            "Right":[
+                {"Name":"Room5", "ArucoID":105, "Distance":7.0}
+            ],
+            "Left":[]
         },
         {
             "AisleName":"Aisle5",
-            "HeadNodeID":0,
-            "HeadMarker":5,
-            "HeadDirection":180,
-            "EndNodeID":1,
-            "EndMarker":6,
-            "EndDirection":0,
-            "Length":1.5,
+            "HeadNodeID":1,
+            "HeadMarker":6,
+            "HeadDirection":0,
+            "EndNodeID":0,
+            "EndMarker":5,
+            "EndDirection":180,
+            "Length":2.0,
             "Right":[],
             "Left":[]
         }
