@@ -29,6 +29,9 @@ class CentralControl():
         self.tar_dire = 1
         self.tar_dest = 0
 
+        #Time data to Location
+        self.start_time = 0
+
         #Current direction and location data
         #--- Current direction: 1/-1/None
         #--- Current status: 'arr'/'nar'
@@ -62,6 +65,11 @@ class CentralControl():
         else:
             self.tar_dire = 1
             self.tar_dest = 999
+
+
+    def reset_start_time(self):
+        '''Reset the start_time for Location'''
+        self.start_time = time.clock()
 
 
     def set_executor_status(self, executor_status):
@@ -132,10 +140,24 @@ class CentralControl():
         Send the tar_dest to Location
         - Module: CentralControl/Location
         - Socket: PUP/SUB
-        - Pub Data: string; tar_dest        
+        - Pub Data: multipart ['tar_dest', '{"tar_dest": tar_dest}']
         '''
-        self.socket_cl.send_string(str(self.tar_dest))
+        data = json.dumps({'tar_dest': self.tar_dest})
+        self.socket_cl.send_multipart([b'tar_dest', data.encode()])
         print('send tar_dest:', self.tar_dest)
+
+    
+    def send_time_difference(self):
+        '''
+        Send the time to Location
+        - Module: CentralControl/Location
+        - Socket: PUP/SUB
+        - Pub Data: multipart ['time', '{"time": time}']     
+        '''
+        time = time.clock() - self.start_time
+        data = json.dumps({'time': time})
+        self.socket_cl.send_multipart([b'time', data.encode()])
+        print('time:', time)
 
 
     def recv_loc_data(self):
@@ -182,10 +204,14 @@ class CentralControl():
         '''
         #Recv the path data from Map
         self.recv_path_data()
+        self.reset_start_time()
 
         while True:
             #Send the tar_dest to Location
             self.send_tar_dest()
+
+            #Send the time difference
+            self.send_time_difference()
 
             #Recv the loc_data from Location
             self.recv_loc_data()
@@ -196,7 +222,7 @@ class CentralControl():
                 break
             else:
                 if self.tar_dire != 1 and self.tar_dire != -1:      #Need to turn
-                    self.set_executor_angle(self.tar_dire * (-1) * 3.14 / 180)
+                    self.set_executor_angle(self.tar_dire * 3.14 / 180)
                     self.set_executor_status(3)                     #turn
                 else:
                     if self.cur_dire is None:
@@ -220,6 +246,7 @@ class CentralControl():
                     self.send_motion_data()
                     self.cur_status = self.executor_status
                     self.cur_angle = self.executor_angle
+                    self.reset_start_time()
                     print('Send exector_status', self.executor_status)
                 else:                                                                               #Same status, do not send
                     print('Do not send exector status because of same status')
@@ -232,7 +259,9 @@ class CentralControl():
                     self.send_motion_data()
                     self.cur_status = self.executor_status
                     self.cur_angle = self.executor_angle
-                    print('Send exector_status', self.executor_status)
+                    self.reset_start_time()
+                    if self.executor_angle['angle'] != 3.14:
+                        print('Send exector_status', self.executor_status)
 
 
     def run(self):
