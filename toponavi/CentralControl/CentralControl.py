@@ -154,10 +154,10 @@ class CentralControl():
         - Socket: PUP/SUB
         - Pub Data:json '{"time": time}'
         '''
-        time = time.clock() - self.start_time
-        data = {'time': time}
+        t_diff = time.clock() - self.start_time
+        data = {'time': t_diff}
         self.socket_cl.send_json(data)
-        print('time:', time)
+        print('time:', t_diff)
 
 
     def recv_loc_data(self):
