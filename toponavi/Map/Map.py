@@ -81,7 +81,8 @@ class Map:
         INF = float('inf')
         staPos = self.findPos(staName)
         desPos = self.findPos(desName)
-
+        # print("staPos: ",staPos)
+        # print("desPos: ",desPos)
         staConNode = [staPos[0]["HeadNodeID"],staPos[0]["EndNodeID"]]
         desConNode = [desPos[0]["HeadNodeID"],desPos[0]["EndNodeID"]]
         # print("staConNode",staConNode)
@@ -97,6 +98,7 @@ class Map:
             adjMat = np.insert(adjMat, idxStaVex, values=ins, axis=1) # 增加两列
             adjMat[idxStaVex,idxStaVex] = adjMat[idxDesVex,idxDesVex] = 0
             nVex = adjMat.shape[0]
+            # print(adjMat)
             if staConNode[0] is not None:
                 adjMat[idxStaVex,staConNode[0]] = staPos[1]["Distance"]
                 adjMat[staConNode[0],idxStaVex] = staPos[1]["Distance"]
@@ -107,9 +109,10 @@ class Map:
                 adjMat[idxDesVex,desConNode[0]] = desPos[1]["Distance"]
                 adjMat[desConNode[0],idxDesVex] = desPos[1]["Distance"]
             if desConNode[1] is not None:
-                adjMat[idxStaVex,desConNode[1]] = desPos[0]["Length"] - desPos[1]["Distance"]
-                adjMat[desConNode[1],idxStaVex] = desPos[0]["Length"] - desPos[1]["Distance"]
+                adjMat[idxDesVex,desConNode[1]] = desPos[0]["Length"] - desPos[1]["Distance"]
+                adjMat[desConNode[1],idxDesVex] = desPos[0]["Length"] - desPos[1]["Distance"]
             # print("adjMat\n",adjMat)
+            # print(adjMat)
 
             minDistList = adjMat[idxStaVex].copy()
             dVexList = [] # deactivate vextexs，已确认最短路径的Vex列表
@@ -139,11 +142,14 @@ class Map:
                         pathList[i] = pathList[aVex].copy()
                 # print("minDistList",minDistList)
                 # print("pathList",pathList)
+            nodeSeq = []
             if minDistList[idxDesVex] != INF:
                 # pathList[idxDesVex][0] = staPos[1]["ArucoID"]
                 # pathList[idxDesVex][-1] = desPos[1]["ArucoID"]
                 nodeSeq = pathList[idxDesVex] # 确定最后的路径点（路口）序列
                 # return (minDistList[idxDesVex],pathList[idxDesVex])
+
+            # print("Node: ", nodeSeq)
 
             inAngle = 0
             outAngle = 0
@@ -197,8 +203,14 @@ class Map:
                         nextMk = nextAisle["EndMarker"]
                 # print("NextAisle", nextAisle["AisleName"])
                 turn = outAngle - inAngle
-                if turn > 180: turn -= 360
-                elif turn < -180: turn += 360
+                if turn >= 180: 
+                    turn -= 360
+                elif turn <= -180: 
+                    turn += 360
+                if turn >= 0:
+                    turn = turn - 180
+                else:
+                    turn = 180 + turn
                 # path.append({"flag":"turn", "value":turn})
                 path.append(turn)
                 # path.append({"flag":"mk", "value":nextMk})
@@ -215,11 +227,11 @@ class Map:
             nextMk = desPos[1]["ArucoID"]
             path.append(nextMk)
             if desPos[2] == "L":
-                if direction == 1: turn = -90
-                else: turn = 90
-            if desPos[2] == "R":
                 if direction == 1: turn = 90
                 else: turn = -90
+            if desPos[2] == "R":
+                if direction == 1: turn = -90
+                else: turn = 90
             # path.append({"flag":"turn", "value":turn})
             path.append(turn)
             result = {"path":[]}
@@ -235,17 +247,20 @@ class Map:
             reqInfo = repSocket.recv_json()
             aisle = self.findMarker(reqInfo["id"])
             unit = {"id":aisle["HeadMarker"], "dist":0.0}
-            repDict = {"list":[unit]}
+            repDict={"mkList":[]}
+            repDict["mkList"].append(unit.copy())
             for room in aisle["Left"]:
                 unit["id"] = room["ArucoID"]
                 unit["dist"] = room["Distance"]
-                repDict["list"].append(unit)
+                repDict["mkList"].append(unit.copy())
             for room in aisle["Right"]:
                 unit["id"] = room["ArucoID"]
                 unit["dist"] = room["Distance"]
-                repDict["list"].append(unit)
+                repDict["mkList"].append(unit.copy())
             unit["id"] = aisle["EndMarker"]
             unit["dist"] = aisle["Length"]
+            repDict["mkList"].append(unit.copy())
+            print(repDict)
             repSocket.send_json(repDict)
 
     def pathPlanService(self):
@@ -275,8 +290,8 @@ class Map:
 if __name__ == "__main__":
     map = Map("map.json")
     # print("========Path Calc=========")
-    # print(map.findPath("Room2","Room3"))
-    # path=map.planPath("Room1","Room5")
+    # path=map.planPath("Room1","Room2")
+    # print(path)
     # f = open("path.json","w")
     # json.dump(path,f)
     # print(type(path))
