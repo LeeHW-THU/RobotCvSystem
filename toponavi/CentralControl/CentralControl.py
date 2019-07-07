@@ -30,7 +30,7 @@ class CentralControl():
         self.tar_dest = 0
 
         #Current direction and location data
-        #--- Current direction: 1/-1
+        #--- Current direction: 1/-1/None
         #--- Current status: 'arr'/'nar'
         self.cur_dire = 1
         self.cur_location = 'nar'
@@ -43,16 +43,17 @@ class CentralControl():
 
         #Current motion data
         self.cur_status = 999
+        self.cur_angle = json.dumps({'angle': 9})
 
 
-    #Set the address from input
     def set_address(self, source, destination):
+        '''Set the address from input'''
         self.source = source
         self.destination = destination
 
 
-    #Set the temp target location data from Map_path
     def set_target_data(self):
+        '''Set the temp target location data from Map_path'''
         if (len(self.path_data) != 0):
             self.tar_dire = self.path_data[0]
             self.tar_dest = self.path_data[1]
@@ -63,24 +64,32 @@ class CentralControl():
             self.tar_dest = 999
 
 
-    #Set the motion status and motion angle to executor
     def set_executor_status(self, executor_status):
+        '''Set the motion status to executor'''
         self.executor_status = executor_status
 
     def set_executor_angle(self, executor_angle):
+        '''Set the motion angle to executor'''        
         angle_data = {'angle': executor_angle}
         self.executor_angle = json.dumps(angle_data)
 
 
-    #Get the input address
     def input_address(self):
+        '''Get the input address from keyboard'''        
         source = input("Input the source >>> ")
         destination = input("Input the destination >>> ")
         self.set_address(source, destination)
 
 
-    #Create the socket
     def create_socket(self, context=None):
+        '''
+        Create the socket
+        - Map/CC
+        - CC/Location
+        - Location/CC
+        - CC/Executor
+        '''
+
         #Socket for recv the path data
         context = context or zmq.Context.instance()
         self.socket_mc = context.socket(zmq.REQ)
@@ -103,12 +112,14 @@ class CentralControl():
         self.socket_ce.connect(self.endpoint_cc_executor)
 
 
-    #Recv the path data from Map
-    #--- Module: Map/CentralControl
-    #--- Socket: REP/REQ
-    #--- Rep Data: multipart ['path', source, destination]
-    #--- Req Data: string "dire, destination, ..."
     def recv_path_data(self):
+        '''
+        Recv the path data from Map
+        - Module: Map/CentralControl
+        - Socket: REP/REQ
+        - Req Data: multipart; ['path', source, destination]
+        - Rep Data: json; {"path": [dire, destination, ...]}
+        '''
         self.socket_mc.send_multipart([b'path', self.source.encode(), self.destination.encode()] )
         recv_data = self.socket_mc.recv_json()
         self.path_data = recv_data['path']
@@ -116,31 +127,37 @@ class CentralControl():
         self.set_target_data()  #Set the first tmp target destination
 
 
-    #Send the tar_dest to Location
-    #--- Module: CentralControl/Location
-    #--- Socket: PUP/SUB
-    #--- Pub Data: tar_dest
     def send_tar_dest(self):
+        '''
+        Send the tar_dest to Location
+        - Module: CentralControl/Location
+        - Socket: PUP/SUB
+        - Pub Data: string; tar_dest        
+        '''
         self.socket_cl.send_string(str(self.tar_dest))
         print('send tar_dest:', self.tar_dest)
 
 
-    #Recv the loc_data from Location
-    #--- Module: Location/CentralControl
-    #--- Socket: PUP/SUB
-    #--- Sub Data: {direcetion:'', location:''}
     def recv_loc_data(self):
+        '''
+        Recv the loc_data from Location
+        - Module: Location/CentralControl
+        - Socket: PUP/SUB
+        - Sub Data: json; {"direcetion":'', "location":''}        
+        '''
         loc_data = self.socket_lc.recv_json()
         print('loc_data:', loc_data)
         self.cur_dire = loc_data['direction']
         self.cur_location = loc_data['location']
 
 
-    #Send motion data to executor
-    #--- Module: CentralControl/Executor
-    #--- Socket: DEALER/ROUTRER
-    #--- Send Data: multipart ['start/stop/turn', json]
     def send_motion_data(self):
+        '''
+        Send motion data to executor
+        - Module: CentralControl/Executor
+        - Socket: DEALER/ROUTRER
+        - Send Data: multipart ['start/stop/turn', json]        
+        '''
         if self.executor_status == 1:
             self.socket_ce.send_multipart([b'start', b'none'])
         elif self.executor_status == 2:
@@ -152,8 +169,17 @@ class CentralControl():
         print('Send executor data:', self.executor_status)
 
 
-    #Navigation
     def navigation(self):
+        '''
+        Navigation
+        - init
+           - Recv the path data from Map
+        - loop
+           - Send the tar_dest to Location
+           - Recv the loc_data from Location
+           - Set executor_status
+           - Decide if send executor_status to executor
+        '''
         #Recv the path data from Map
         self.recv_path_data()
 
@@ -164,38 +190,51 @@ class CentralControl():
             #Recv the loc_data from Location
             self.recv_loc_data()
 
-            #Navigate
+            #Set executor_status
             if self.tar_dest == '##':                               #Path_data is empty
                 print('Navigation finish.')
                 break
             else:
-                if self.tar_dire != 1 and self.tar_dire != -1:   #Need to turn
+                if self.tar_dire != 1 and self.tar_dire != -1:      #Need to turn
                     self.set_executor_angle(self.tar_dire * 3.14 / 180)
                     self.set_executor_status(3)                     #turn
                 else:
                     if self.cur_dire is None:
                         self.set_executor_status(1)
-                    elif self.cur_dire != self.tar_dire:              #The current dircetion is opposite
+                    elif self.cur_dire != self.tar_dire:            #The current dircetion is opposite
                         self.set_executor_angle(3.14)
                         self.set_executor_status(3)                 #turn
                     else:
                         if self.cur_location == 'nar':              #Not arrive the target marker
                             self.set_executor_status(1)             #start
                         elif self.cur_location == 'arr':            #Arrive the target marker
-                            self.set_executor_status(2)             #stop
+                            #self.set_executor_status(2)            
                             self.set_target_data()                  #Update the tmp target
                         else:
                             self.set_executor_status(2)             #stop
             print('Set executor_status: ', self.executor_status)
 
-            #Send motion data to executor
-            if(self.cur_status != self.executor_status):
-                self.send_motion_data()
-                self.cur_status = self.executor_status
-                print('Send exector_status', self.executor_status)
+            #Decide if send executor_status to executor
+            if self.cur_status != 3:                                                                #Befor turn
+                if self.cur_status != self.executor_status:                                         #Send motion data to executor
+                    self.send_motion_data()
+                    self.cur_status = self.executor_status
+                    self.cur_angle = self.executor_angle
+                    print('Send exector_status', self.executor_status)
+                else:                                                                               #Same status, do not send
+                    print('Do not send exector status because of same status')
+            else:                                                                                   #After turn
+                if self.executor_status == 1:                                                       #When it is turning, do not send start
+                    print('Do not send exector status because of turning')
+                elif self.executor_status == 3 and self.cur_angle == self.executor_angle:           #Same turning, do not send
+                    print('Do not send exector status because of same turning')
+                else:                                                                               #Different turning or stop, send motion data
+                    self.send_motion_data()
+                    self.cur_status = self.executor_status
+                    self.cur_angle = self.executor_angle
+                    print('Send exector_status', self.executor_status)
 
 
-    #Run
     def run(self):
         #Get the address
         #self.input_address()
