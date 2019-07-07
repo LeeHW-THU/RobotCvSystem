@@ -196,7 +196,7 @@ class CentralControl():
                 break
             else:
                 if self.tar_dire != 1 and self.tar_dire != -1:      #Need to turn
-                    self.set_executor_angle(self.tar_dire * 3.14 / 180)
+                    self.set_executor_angle(self.tar_dire * (-1) * 3.14 / 180)
                     self.set_executor_status(3)                     #turn
                 else:
                     if self.cur_dire is None:
