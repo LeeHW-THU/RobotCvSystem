@@ -12,7 +12,7 @@ class PF_Location():
         self.mark_endpoint = 'ipc:///run/toponavi/MarkerDetector/Location.ipc'
         self.cc_endpoint = 'ipc:///run/toponavi/CentralControl/Location.ipc'
         self.loc_endpoint = 'ipc:///run/toponavi/Location/CentralControl.ipc'
-        self.map_endpoint = 'ipc:///run/toponavi/Location/Map.ipc'
+        self.map_endpoint = 'ipc///run/toponavi/Map/Location.ipc'
 
         self.test2 = 'ipc:///tmp/2.ipc'
         self.test3 = 'ipc:///tmp/3.ipc'
