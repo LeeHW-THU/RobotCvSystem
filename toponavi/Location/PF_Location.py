@@ -158,16 +158,16 @@ class PF_Location():
                                if self.mapinfor["mkList"]["id"][j] == self.localmark                              
                                    marklocal=self.mapinfor["mkList"]["dist"][j]
                                    landmarks.append(marklocal)
-                        else:
-                           if(targetID2 != targetID):
-                              if(len(landmarks)):
-                                  landmarks.pop()
-                              for j in range(len(self.mapinfor["mkList"]["id"])):
-                                  if self.mapinfor["mkList"]["id"][j] == targetID
-                                     s = j
-                              marklocal=self.mapinfor["mkList"]["dist"][s]
-                              landmarks.append(marklocal)
-                              nowid=targetID
+                    if m is None:
+                        if(targetID2 != targetID):
+                            if(len(landmarks)):
+                                landmarks.pop()
+                            for j in range(len(self.mapinfor["mkList"]["id"])):
+                                if self.mapinfor["mkList"]["id"][j] == targetID
+                                    s = j
+                            marklocal=self.mapinfor["mkList"]["dist"][s]
+                            landmarks.append(marklocal)
+                            nowid=targetID
                     print("Now TGmark is %s"%(nowid))
                     print(self.direction)
                 xs = []
@@ -179,16 +179,16 @@ class PF_Location():
                 time = self.time1 - self.time2
                 dire = self.direction
                 if dire is not None:                
-                    predict(particles, u=0.51, std = 0.2, dt = time,dir = dire)
+                    predict(particles, u=51, std = 0.2, dt = time,dir = dire) ##单位厘米 51厘米每秒
                 if dire is None:
-                    predict(particles, u=0.51, std = 0.2, dt = time,dir = 1)
+                    predict(particles, u=51, std = 0.2, dt = time,dir = 1)
                 if(len(landmarks)):
                     if m is not None :
                        ds = self.marker_data["dists"][m][0]
                     else:
                        ds = self.marker_data["dists"][0][0]
                     update(particles, weights, z=ds, R=sensor_std_err, landmarks=landmarks)##更新粒子权值
-                if neff(weights) < N / 2:##判断是否需要重采样
+                if neff(weights) < N / 2 :##判断是否需要重采样
                    simple_resample(particles, weights)
                 self.mu, self.var = estimate(particles, weights)
                 xs.append(self.mu)
