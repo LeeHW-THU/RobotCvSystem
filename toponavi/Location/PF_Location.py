@@ -84,8 +84,6 @@ class PF_Location():
 
 
     def set_Location(self):
-        m = None
-        k = None
         for j in range(len(self.mapinfor["mkList"]["id"])):
             if self.mapinfor["mkList"]["id"][j] == self.localmark
                n = j
@@ -138,49 +136,52 @@ class PF_Location():
             targetID =None
             while self.mu <= max :
                 #   mark  to  loc
-                while len(self.marker_data["dists"]) == 0:
+                nowid = None
+                count = 0
+                while len(self.marker_data["dists"]) == 0 and count < 10:
                    self.marker_data = self.socket_marl.recv_json()
+                   count += 1
+                   
                 print(self.marker_data["dists"])
                 print("localmark", self.localmark)
                 if (self.marker_data) and (self.localmark is not None) :
-                    self.set_direction()
-                print(self.direction)   
-                targetmarker =self.localmark
-                targetID2 = targetID
-                targetID = self.marker_data["ids"][0][0]
-                m = None
-                for i to range(len(self.marker_data["ids"])):
-                    if(self.marker_data["ids"][i][0]==self.localmark):
-                       nowid = self.localmark
-                       m = i
-                       for j in range(len(self.mapinfor["mkList"]["id"])):
-                           if self.mapinfor["mkList"]["id"][j] == self.localmark                              
-                               marklocal=self.mapinfor["mkList"]["dist"][j]
-                               landmarks.append(marklocal)
-                    else:
-                       if(targetID2 != targetID):
-                          if(len(landmarks)):
-                              landmarks.pop()
-                          for j in range(len(self.mapinfor["mkList"]["id"])):
-                              if self.mapinfor["mkList"]["id"][j] == targetID
-                                 s = j
-                          marklocal=self.mapinfor["mkList"]["dist"][s]
-                          landmarks.append(marklocal)
-                          nowid=targetID
-                print("Now TGmark is %s"%(nowid))
+                    self.set_direction() 
+                    targetmarker =self.localmark
+                    targetID2 = targetID
+                    targetID = self.marker_data["ids"][0][0]
+                    m = None
+                    for i to range(len(self.marker_data["ids"])):
+                        if(self.marker_data["ids"][i][0]==self.localmark):
+                           nowid = self.localmark
+                           m = i
+                           for j in range(len(self.mapinfor["mkList"]["id"])):
+                               if self.mapinfor["mkList"]["id"][j] == self.localmark                              
+                                   marklocal=self.mapinfor["mkList"]["dist"][j]
+                                   landmarks.append(marklocal)
+                        else:
+                           if(targetID2 != targetID):
+                              if(len(landmarks)):
+                                  landmarks.pop()
+                              for j in range(len(self.mapinfor["mkList"]["id"])):
+                                  if self.mapinfor["mkList"]["id"][j] == targetID
+                                     s = j
+                              marklocal=self.mapinfor["mkList"]["dist"][s]
+                              landmarks.append(marklocal)
+                              nowid=targetID
+                    print("Now TGmark is %s"%(nowid))
+                    print(self.direction)
                 xs = []
                 #   设置时间：
-                if  self.iddata["time"]:
-                    self.time2 = self.time1
-                    while len(self.iddata["time"][0]) == 0 :
-                       self.timedata = self.socket_cl2.recv_json() 
-                       self.time1 = self.iddata["time"][0]
-                    time = self.time1 - self.time2
-                    dire = self.direction
-                    if dire is not None:                
-                       predict(particles, u=0.51, std = 0.2, dt = time,dir = dire)
-                    if dire is None:
-                       predict(particles, u=0.51, std = 0.2, dt = time,dir = 1)
+                self.time2 = self.time1
+                while len(self.iddata["time"][0]) == 0 :
+                    self.timedata = self.socket_cl2.recv_json() 
+                    self.time1 = self.iddata["time"][0]
+                time = self.time1 - self.time2
+                dire = self.direction
+                if dire is not None:                
+                    predict(particles, u=0.51, std = 0.2, dt = time,dir = dire)
+                if dire is None:
+                    predict(particles, u=0.51, std = 0.2, dt = time,dir = 1)
                 if(len(landmarks)):
                     if m is not None :
                        ds = self.marker_data["dists"][m][0]
