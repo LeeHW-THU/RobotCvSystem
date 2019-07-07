@@ -140,10 +140,10 @@ class CentralControl():
         Send the tar_dest to Location
         - Module: CentralControl/Location
         - Socket: PUP/SUB
-        - Pub Data: multipart ['tar_dest', '{"tar_dest": tar_dest}']
+        - Pub Data: json; '{"tar_dest": tar_dest}'
         '''
-        data = json.dumps({'tar_dest': self.tar_dest})
-        self.socket_cl.send_multipart([b'tar_dest', data.encode()])
+        data = {'tar_dest': self.tar_dest}
+        self.socket_cl.send_json(data)
         print('send tar_dest:', self.tar_dest)
 
     
@@ -152,11 +152,11 @@ class CentralControl():
         Send the time to Location
         - Module: CentralControl/Location
         - Socket: PUP/SUB
-        - Pub Data: multipart ['time', '{"time": time}']     
+        - Pub Data:json '{"time": time}'
         '''
         time = time.clock() - self.start_time
-        data = json.dumps({'time': time})
-        self.socket_cl.send_multipart([b'time', data.encode()])
+        data = {'time': time}
+        self.socket_cl.send_json(data)
         print('time:', time)
 
 
@@ -259,9 +259,9 @@ class CentralControl():
                     self.send_motion_data()
                     self.cur_status = self.executor_status
                     self.cur_angle = self.executor_angle
-                    print('Send exector_status', self.executor_status)
+                    self.reset_start_time()
                     if self.executor_angle['angle'] != 3.14:
-                        self.reset_start_time()
+                        print('Send exector_status', self.executor_status)
 
 
     def run(self):
