@@ -2,16 +2,19 @@ import json
 import numpy as np
 import zmq
 import multiprocessing
+import threading
 import pathlib
 
 # ==================================================================== #
 class Map:
     def __init__(self, mapFilename):
-        self.outSocketPath = "/run/toponavi/Map/CentralControl.ipc"
-        self.pathEndpoint = "ipc://"+self.outSocketPath
+        self.pathPlanServiceSocketPath = "/run/toponavi/Map/CentralControl.ipc"
+        self.pathPlanServiceEndpoint = "ipc://"+self.pathPlanServiceSocketPath
+        self.aisleSearchServiceSocketPath = "/run/toponavi/Map/Location.ipc"
+        self.aisleSearchServiceEndpoint = "ipc://"+self.aisleSearchServiceSocketPath
         self.map = None
 
-        socketDir = pathlib.Path(self.outSocketPath).parent
+        socketDir = pathlib.Path(self.pathPlanServiceSocketPath).parent
         socketDir.mkdir(parents=True, exist_ok=True)
 
         with open(mapFilename, "r") as f:
@@ -55,6 +58,24 @@ class Map:
                     return (aisle,room,"R")
         print("Cannot find room: "+name)
         return None
+
+    def findMarker(self, id):
+        targetAisle = None
+        for aisle in self.map["AisleList"]:
+            if (aisle["HeadMarker"] == id or aisle["EndMarker"] == id):
+                targetAisle = aisle
+            else:
+                for room in aisle["Left"]:
+                    if room["ArucoID"] == id:
+                        targetAisle = aisle
+                if targetAisle is not None:
+                    break
+                for room in aisle["Right"]:
+                    if room["ArucoID"] == id:
+                        targetAisle = aisle
+        return targetAisle
+
+                
 
     def planPath(self, staName, desName):
         INF = float('inf')
@@ -206,10 +227,31 @@ class Map:
             return result
         pass
 
-    def main(self):
+    def aisleSearchService(self):
         ctx = zmq.Context()
         repSocket = ctx.socket(zmq.REP)
-        repSocket.bind(self.pathEndpoint)
+        repSocket.bind(self.aisleSearchServiceEndpoint)
+        while True:
+            reqInfo = repSocket.recv_json()
+            aisle = self.findMarker(reqInfo["id"])
+            unit = {"id":aisle["HeadMarker"], "dist":0.0}
+            repDict = {"list":[unit]}
+            for room in aisle["Left"]:
+                unit["id"] = room["ArucoID"]
+                unit["dist"] = room["Distance"]
+                repDict["list"].append(unit)
+            for room in aisle["Right"]:
+                unit["id"] = room["ArucoID"]
+                unit["dist"] = room["Distance"]
+                repDict["list"].append(unit)
+            unit["id"] = aisle["EndMarker"]
+            unit["dist"] = aisle["Length"]
+            repSocket.send_json(repDict)
+
+    def pathPlanService(self):
+        ctx = zmq.Context()
+        repSocket = ctx.socket(zmq.REP)
+        repSocket.bind(self.pathPlanServiceEndpoint)
         while True:
             topic, staName, desName = repSocket.recv_multipart()
             # topic.decode()
@@ -219,6 +261,12 @@ class Map:
             path = self.planPath(staName, desName)
 
             repSocket.send_json(path)
+
+    def main(self):
+        aisleSearchThread = threading.Thread(target=self.aisleSearchService)
+        pathPlanThread = threading.Thread(target=self.pathPlanService)
+        aisleSearchThread.start()
+        pathPlanThread.start()
 
     def run(self):
         mainProcess = multiprocessing.Process(target=self.main)
@@ -233,5 +281,5 @@ if __name__ == "__main__":
     # json.dump(path,f)
     # print(type(path))
     # print(path)
-    map.run()
+    map.main()
     pass
