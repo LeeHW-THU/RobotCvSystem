@@ -259,9 +259,9 @@ class CentralControl():
                     self.send_motion_data()
                     self.cur_status = self.executor_status
                     self.cur_angle = self.executor_angle
-                    self.reset_start_time()
+                    print('Send exector_status', self.executor_status)
                     if self.executor_angle['angle'] != 3.14:
-                        print('Send exector_status', self.executor_status)
+                        self.reset_start_time()
 
 
     def run(self):
