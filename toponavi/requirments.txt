@@ -2,3 +2,4 @@ pyzmq==18.0.2
 PyYAML==5.1.1
 numpy==1.16.4
 opencv-contrib-python-headless==3.4.4.19
+systemd-python==234

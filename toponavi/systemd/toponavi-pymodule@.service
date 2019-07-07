@@ -9,3 +9,4 @@ ExecStart=/usr/bin/python3 -m %i
 Restart=on-failure
 RestartSec=1s
 RuntimeDirectory=toponavi
+SyslogIdentifier=TopoNavi-%i
