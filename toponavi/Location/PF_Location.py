@@ -18,7 +18,7 @@ class PF_Location():
 
         self.test2 = 'ipc:///tmp/2.ipc'
         self.test3 = 'ipc:///tmp/3.ipc'
-        
+
         socket_dir = pathlib.Path("/run/toponavi/Location")
         socket_dir.mkdir(parents=True, exist_ok=True)
 
@@ -41,7 +41,7 @@ class PF_Location():
     # 状态转化器
     def predict(self, particles, u, std, dt, dir):
         N = len(particles)
-        particles += u*dt*dir + (randn(N) * std) 
+        particles += u*dt*dir + (randn(N) * std)
 
     #更新粒子权值
     def update(self,particles, weights, z, R, landmarks):
@@ -52,7 +52,7 @@ class PF_Location():
 
         weights += 1.e-300  # avoid round-off to zero
         weights /= sum(weights)  # normalize
-  
+
  #  加权平均求预计位置
     def estimate(self,particles, weights):
         pos = particles
@@ -90,11 +90,11 @@ class PF_Location():
     def set_Location(self):
         for j in range(len(self.mapinfor["mkList"])):
             if self.mapinfor["mkList"][j]["id"] == self.localmark :
-               n = j
-               if self.mu >= self.mapinfor["mkList"][n]["dist"] :
-                  self.location ='arr'                  
+                n = j
+                if self.mu >= self.mapinfor["mkList"][n]["dist"] :
+                    self.location ='arr'
         else:
-           self.location = 'nar'
+            self.location = 'nar'
 
 #   创建多个socket
     def create_socket(self, context=None):
@@ -147,27 +147,27 @@ class PF_Location():
                 count = 0
                 self.marker_data = self.socket_marl.recv_json()
                 while len(self.marker_data["dists"]) == 0 and count < 10:
-                   self.marker_data = self.socket_marl.recv_json()
-                   count += 1
-                   
+                    self.marker_data = self.socket_marl.recv_json()
+                    count += 1
+
                 print(self.marker_data["dists"])
                 print("localmark", self.localmark)
 #               限制条件，需要在有目标mark和小车在看的到mark的情况下进行，如果看不到，粒子无法更新权值 只能移动
-                if (self.marker_data) and (self.localmark is not None) : 
-                    self.set_direction() 
+                if self.marker_data["ids"] and (self.localmark is not None) :
+                    self.set_direction()
                     targetID2 = targetID
                     targetID = self.marker_data["ids"][0][0]
-#               判断小车视野里是否有目标mark 如果有，直接锁定目标mark                
+#               判断小车视野里是否有目标mark 如果有，直接锁定目标mark
                     m = None
                     for i in range(len(self.marker_data["ids"])) :
                         if(self.marker_data["ids"][i][0]==self.localmark):
-                           nowid = self.localmark
-                           m = i
-                           
-                           for j in range(len(self.mapinfor["mkList"])):
-                               if self.mapinfor["mkList"][j]["id"] == self.localmark :                             
-                                   marklocal=self.mapinfor["mkList"][j]["dist"]*100
-                                   landmarks.append(marklocal)
+                            nowid = self.localmark
+                            m = i
+
+                            for j in range(len(self.mapinfor["mkList"])):
+                                if self.mapinfor["mkList"][j]["id"] == self.localmark :
+                                    marklocal=self.mapinfor["mkList"][j]["dist"]*100
+                                    landmarks.append(marklocal)
 #               小车视野里没有目标mark时，就用视野中其它mark作为判定位置的依据
                     if m is None:
                         if(targetID2 != targetID):
@@ -184,13 +184,13 @@ class PF_Location():
                     print(self.direction)
                 xs = []
                 #   设置时间：
-                self.time2 = self.time1                
-                self.timedata = data['time'] 
+                self.time2 = self.time1
+                self.timedata = data['time']
                 time = self.time1 - self.time2
 
 #               状态更新模块
-                dire = self.direction 
-                if dire is not None:                
+                dire = self.direction
+                if dire is not None:
                     self.predict(particles, u=51, std = 0.2, dt = time, dir = dire) ##单位厘米 51厘米每秒
                 if dire is None:
                     self.predict(particles, u=51, std = 0.2, dt = time, dir = 1)
@@ -198,20 +198,20 @@ class PF_Location():
 #               权值更新模块
                 if(len(landmarks)):
                     if m is not None :
-                       ds = self.marker_data["dists"][m][0]
+                        ds = self.marker_data["dists"][m][0]
                     else:
-                       ds = self.marker_data["dists"][0][0]
+                        ds = self.marker_data["dists"][0][0]
                     dz = [ds]
                     self.update(particles, weights, z=dz, R=sensor_std_err, landmarks=landmarks)##更新粒子权值
 
                 if self.neff(weights) < N / 2 :##判断是否需要重采样
-                   self.simple_resample(particles, weights)
+                    self.simple_resample(particles, weights)
 
-#               得出预测小车的位置                   
+#               得出预测小车的位置
                 self.mu, self.var = self.estimate(particles, weights)
                 xs.append(self.mu)
                 print("Get the current car position as follows : %s" %self.mu)
-                self.set_Location()  
+                self.set_Location()
 
 #               传输部分：
                 location_date={"direction":self.direction,"location":self.location}
