@@ -12,7 +12,7 @@ class PF_Location():
     def __init__(self):
 
         self.mark_endpoint = 'ipc:///run/toponavi/MarkerDetector/Location.ipc'
-        self.cc_endpoint = 'ipc:///run/toponavi/CentralControl/Location.ipc'
+        self.cc_endpoint = 'ipc:///run/toponavi/Location/dt.ipc'
         self.loc_endpoint = 'ipc:///run/toponavi/Location/CentralControl.ipc'
         self.map_endpoint = 'ipc:///run/toponavi/Map/Location.ipc'
 
@@ -98,27 +98,21 @@ class PF_Location():
 
 #   创建多个socket
     def create_socket(self, context=None):
-        context = zmq.Context().instance()
-        self.socket_cl1 = context.socket(zmq.SUB)
+        context = zmq.Context.instance()
+        self.socket_cl = context.socket(zmq.ROUTER)
 #        self.socket_cl1.connect(self.test3)            # test
-        self.socket_cl1.connect(self.cc_endpoint)
-        self.socket_cl1.setsockopt(zmq.SUBSCRIBE, b'tar_dest')
+        self.socket_cl.bind(self.loc_endpoint)
 
-        context = zmq.Context().instance()
-        self.socket_cl2 = context.socket(zmq.SUB)
-#        self.socket_cl2.connect(self.test2)           #test
-        self.socket_cl1.connect(self.cc_endpoint)
-        self.socket_cl2.setsockopt(zmq.SUBSCRIBE, b'time')
 
-        context = zmq.Context().instance()
+        context = zmq.Context.instance()
         self.socket_ml = context.socket(zmq.REQ)
         self.socket_ml.connect(self.map_endpoint)
 
-        context = zmq.Context().instance()
-        self.socket_lc = context.socket(zmq.PUB)
-        self.socket_lc.bind(self.loc_endpoint)
+        context = zmq.Context.instance()
+        self.socket_lc = context.socket(zmq.DEALER)
+        self.socket_lc.connect(self.cc_endpoint)
 
-        context = zmq.Context().instance()
+        context = zmq.Context.instance()
         self.socket_marl = context.socket(zmq.SUB)
         self.socket_marl.connect(self.mark_endpoint)
         self.socket_marl.setsockopt(zmq.SUBSCRIBE, b'')
@@ -128,22 +122,13 @@ class PF_Location():
         while True:
         #   cc to loc
             print("begin work")
-            topic, data = self.socket_cl1.recv_multipart()
+            topic, data = self.socket_cl.recv_multipart()
             data = data.decode()
             data = json.loads(data)
             self.iddata = data['tar_dest']
             print(self.iddata)
             self.localmark = self.iddata
-
-
-            while self.iddata is None :
-               topic, data = self.socket_cl1.recv_multipart()
-               data = data.decode()
-               data = json.loads(data)
-               self.iddata = data['tar_dest']
-               print(self.iddata)
-               self.localmark = self.iddata
-               print('location recieved: ', self.localmark)
+            print('location recieved: ', self.localmark)
 
         #   loc to map and map to loc
             mapmark = {"id":self.localmark}
@@ -199,24 +184,16 @@ class PF_Location():
                     print(self.direction)
                 xs = []
                 #   设置时间：
-                self.time2 = self.time1
-                topic, data = self.socket_cl2.recv_multipart()
-                data = data.decode()
-                data = json.loads(data)                
+                self.time2 = self.time1                
                 self.timedata = data['time'] 
-                while self.timedata is None :
-                    topic, data = self.socket_cl2.recv_multipart() 
-                    data = data.decode()
-                    data = json.loads(data)
-                    self.timedata = data['time']
                 time = self.time1 - self.time2
 
 #               状态更新模块
                 dire = self.direction 
                 if dire is not None:                
-                    self.predict(particles, u=51, std = 0.2, dt = time,dir = dire) ##单位厘米 51厘米每秒
+                    self.predict(particles, u=51, std = 0.2, dt = time, dir = dire) ##单位厘米 51厘米每秒
                 if dire is None:
-                    self.predict(particles, u=51, std = 0.2, dt = time,dir = 1)
+                    self.predict(particles, u=51, std = 0.2, dt = time, dir = 1)
 
 #               权值更新模块
                 if(len(landmarks)):
@@ -238,7 +215,9 @@ class PF_Location():
 
 #               传输部分：
                 location_date={"direction":self.direction,"location":self.location}
-                self.socket_lc.send(location_date)
+                json_data = json.dumps(data)
+                self.socket_lc.send(json_data.encode())
+                print("send infor",location_date)
                 self.direction = None
                 # time.sleep(3)
 
