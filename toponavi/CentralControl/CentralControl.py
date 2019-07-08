@@ -30,7 +30,7 @@ class CentralControl():
         self.tar_dest = 0
 
         #Time data to Location
-        self.start_time = 0
+        self.start_time = time.clock()
 
         #Current direction and location data
         #--- Current direction: 1/-1/None
