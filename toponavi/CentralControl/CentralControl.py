@@ -144,7 +144,7 @@ class CentralControl():
         '''
         data = {'tar_dest': self.tar_dest}
         json_data = json.dumps(data)
-        self.socket_cl.send_multipart([b'tar_dest', json_data])
+        self.socket_cl.send_multipart([b'tar_dest', json_data.encode()])
         print('send tar_dest:', self.tar_dest)
 
     
@@ -158,7 +158,7 @@ class CentralControl():
         time_difference = time.clock() - self.start_time
         data = {'time': time_difference}
         json_data = json.dumps(data)
-        self.socket_cl.send_multipart([b'time', json_data])
+        self.socket_cl.send_multipart([b'time', json_data.encode()])
         print('time:', time)
 
 
