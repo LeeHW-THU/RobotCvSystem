@@ -203,7 +203,10 @@ class PF_Location():
                         ds = self.marker_data["dists"][0][0]
                     dz = [ds]
                     self.update(particles, weights, z=dz, R=sensor_std_err, landmarks=landmarks)##更新粒子权值
-
+                    
+                if weights == 0 :
+                    weights = 1 / N
+                    
                 if self.neff(weights) < N / 2 :##判断是否需要重采样
                     self.simple_resample(particles, weights)
 
