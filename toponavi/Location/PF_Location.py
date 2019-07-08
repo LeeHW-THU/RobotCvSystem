@@ -182,7 +182,7 @@ class PF_Location():
                             if(len(landmarks)):
                                 landmarks.pop()
                             for j in range(len(self.mapinfor["mkList"])):
-                                if self.mapinfor["mkList"][j]["id"][j] == targetID :
+                                if self.mapinfor["mkList"][j]["id"] == targetID :
                                     s = j
                             marklocal=self.mapinfor["mkList"][s]["dist"]
                             landmarks.append(marklocal)
