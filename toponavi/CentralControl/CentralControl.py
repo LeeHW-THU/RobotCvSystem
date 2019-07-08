@@ -8,13 +8,10 @@ class CentralControl():
     def __init__(self):
         #Endpoint for integration
         self.endpoint_map_cc = 'ipc:///run/toponavi/Map/CentralControl.ipc'
-        self.endpoint_cc_location = 'ipc:///run/toponavi/CentralControl/Location.ipc'
-        self.endpoint_location_cc = 'ipc:///run/toponavi/Location/CentralControl.ipc'
+        self.endpoint_cc_location = 'ipc:///run/toponavi/Location/CentralControl.ipc'
+        self.endpoint_location_cc = 'ipc:///run/toponavi/CentralControl/Location.ipc'
         self.endpoint_cc_executor = 'ipc:///run/toponavi/executor/command.ipc'
 
-        #Create the path
-        socket_dir = pathlib.Path('/run/toponavi/CentralControl')
-        socket_dir.mkdir(parents=True, exist_ok=True)
 
         #Address data from input to Map_path
         self.source = 'Room1'
@@ -105,14 +102,13 @@ class CentralControl():
 
         #Socket for send the tmp destination
         context = context or zmq.Context.instance()
-        self.socket_cl = context.socket(zmq.PUB)
-        self.socket_cl.bind(self.endpoint_cc_location)
+        self.socket_cl = context.socket(zmq.DEALER)
+        self.socket_cl.connect(self.endpoint_cc_location)
 
         #Socket for recv the current direction and location
         context = context or zmq.Context.instance()
-        self.socket_lc = context.socket(zmq.SUB)
-        self.socket_lc.setsockopt(zmq.SUBSCRIBE, b'')
-        self.socket_lc.connect(self.endpoint_location_cc)
+        self.socket_lc = context.socket(zmq.ROUTER)
+        self.socket_lc.bind(self.endpoint_location_cc)
 
         #Socket for send the motion data
         context = context or zmq.Context.instance()
@@ -135,41 +131,30 @@ class CentralControl():
         self.set_target_data()  #Set the first tmp target destination
 
 
-    def send_tar_dest(self):
+    def send_tar_dest_and_time_difference(self):
         '''
         Send the tar_dest to Location
         - Module: CentralControl/Location
-        - Socket: PUP/SUB
-        - Pub Data: multipart ['tar_dest', '{"tar_dest": tar_dest}']
-        '''
-        data = {'tar_dest': self.tar_dest}
-        json_data = json.dumps(data)
-        self.socket_cl.send_multipart([b'tar_dest', json_data.encode()])
-        print('send tar_dest:', self.tar_dest)
-
-    
-    def send_time_difference(self):
-        '''
-        Send the time_difference to Location
-        - Module: CentralControl/Location
-        - Socket: PUP/SUB
-        - Pub Data: multipart ['time', '{"time": time}']
+        - Socket: DEALER/ROUTER
+        - Pub Data: json; '{"tar_dest": tar_dest}', "time": time}
         '''
         time_difference = time.clock() - self.start_time
-        data = {'time': time_difference}
+        data = {'tar_dest': self.tar_dest, 'time': time_difference}
         json_data = json.dumps(data)
-        self.socket_cl.send_multipart([b'time', json_data.encode()])
-        print('time:', time)
+        self.socket_cl.send(json_data.encode())
+        print('send tar_dest:', self.tar_dest)
+        print('time:', time_difference)    
 
 
     def recv_loc_data(self):
         '''
         Recv the loc_data from Location
         - Module: Location/CentralControl
-        - Socket: PUP/SUB
+        - Socket: DEALER/ROUTER
         - Sub Data: json; {"direcetion":'', "location":''}        
         '''
-        loc_data = self.socket_lc.recv_json()
+        dealer_id, loc_data = self.socket_lc.recv_multipart()
+        loc_data = json.loads(loc_data.decode())
         print('loc_data:', loc_data)
         self.cur_dire = loc_data['direction']
         self.cur_location = loc_data['location']
@@ -210,10 +195,8 @@ class CentralControl():
 
         while True:
             #Send the tar_dest to Location
-            self.send_tar_dest()
-
             #Send the time difference
-            self.send_time_difference()
+            self.send_tar_dest_and_time_difference
 
             #Recv the loc_data from Location
             self.recv_loc_data()
@@ -261,10 +244,10 @@ class CentralControl():
                     self.send_motion_data()
                     self.cur_status = self.executor_status
                     self.cur_angle = self.executor_angle
-                    self.reset_start_time()
+                    print('Send exector_status', self.executor_status)
                     if self.executor_angle['angle'] != 3.14:
-                        print('Send exector_status', self.executor_status)
-
+                        self.reset_start_time()
+                        
 
     def run(self):
         #Get the address
