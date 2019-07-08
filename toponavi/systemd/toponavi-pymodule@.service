@@ -3,6 +3,7 @@ Description=TopoNavi system - %i
 PartOf=toponavi.service
 
 [Service]
+Type=simple
 WorkingDirectory=/home/pi/toponavi
 User=pi
 ExecStart=/usr/bin/python3 -m %i
