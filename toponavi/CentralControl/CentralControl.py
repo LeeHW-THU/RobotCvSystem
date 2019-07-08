@@ -12,6 +12,9 @@ class CentralControl():
         self.endpoint_location_cc = 'ipc:///run/toponavi/CentralControl/Location.ipc'
         self.endpoint_cc_executor = 'ipc:///run/toponavi/executor/command.ipc'
 
+        #Create the path
+        socket_dir = pathlib.Path('/run/toponavi/CentralControl')
+        socket_dir.mkdir(parents=True, exist_ok=True)
 
         #Address data from input to Map_path
         self.source = 'Room1'
