@@ -23,10 +23,10 @@ class PF_Location():
         socket_dir.mkdir(parents=True, exist_ok=True)
 
         self.marker_data = {}
-        self.iddata = {}
+        self.iddata = None
         self.time1 = 0.
         self.time2 = None
-        self.timedata = {}
+        self.timedata = None
         self.localmark = None
         self.direction = None
         self.mapinfor = {}
@@ -100,15 +100,15 @@ class PF_Location():
     def create_socket(self, context=None):
         context = zmq.Context().instance()
         self.socket_cl1 = context.socket(zmq.SUB)
-        self.socket_cl1.connect(self.test3)            # test
-#        self.socket_cl1.connect(self.cc_endpoint)
-        self.socket_cl1.setsockopt(zmq.SUBSCRIBE, b'')
+#        self.socket_cl1.connect(self.test3)            # test
+        self.socket_cl1.connect(self.cc_endpoint)
+        self.socket_cl1.setsockopt(zmq.SUBSCRIBE, b'tar_dest')
 
         context = zmq.Context().instance()
         self.socket_cl2 = context.socket(zmq.SUB)
-        self.socket_cl2.connect(self.test2)           #test
-#        self.socket_cl1.connect(self.cc_endpoint)
-        self.socket_cl2.setsockopt(zmq.SUBSCRIBE, b'')
+#        self.socket_cl2.connect(self.test2)           #test
+        self.socket_cl1.connect(self.cc_endpoint)
+        self.socket_cl2.setsockopt(zmq.SUBSCRIBE, b'time')
 
         context = zmq.Context().instance()
         self.socket_ml = context.socket(zmq.REQ)
@@ -127,16 +127,23 @@ class PF_Location():
     def PFrun(self, N = 5000, sensor_std_err = 0.1):
         while True:
         #   cc to loc
-            print("a")            
-            self.iddata = self.socket_cl1.recv_json()
-            print(len(self.iddata["tar_dest"]))
-            self.localmark = self.iddata["tar_dest"][0]
+            print("begin work")
+            topic, data = self.socket_cl1.recv_multipart()
+            data = data.decode()
+            data = json.loads(data)
+            self.iddata = data['tar_dest']
+            print(self.iddata)
+            self.localmark = self.iddata
 
 
-            while len(self.iddata["tar_dest"]) == 0 :
-                self.iddata = self.socket_cl1.recv_json() 
-                self.localmark = self.iddata["tar_dest"][0]
-            print('location recieved: ', self.localmark)
+            while self.iddata is None :
+               topic, data = self.socket_cl1.recv_multipart()
+               data = data.decode()
+               data = json.loads(data)
+               self.iddata = data['tar_dest']
+               print(self.iddata)
+               self.localmark = self.iddata
+               print('location recieved: ', self.localmark)
 
         #   loc to map and map to loc
             mapmark = {"id":self.localmark}
@@ -174,7 +181,7 @@ class PF_Location():
                            
                            for j in range(len(self.mapinfor["mkList"])):
                                if self.mapinfor["mkList"][j]["id"] == self.localmark :                             
-                                   marklocal=self.mapinfor["mkList"][j]["dist"]
+                                   marklocal=self.mapinfor["mkList"][j]["dist"]*100
                                    landmarks.append(marklocal)
 #               小车视野里没有目标mark时，就用视野中其它mark作为判定位置的依据
                     if m is None:
@@ -184,7 +191,7 @@ class PF_Location():
                             for j in range(len(self.mapinfor["mkList"])):
                                 if self.mapinfor["mkList"][j]["id"] == targetID :
                                     s = j
-                            marklocal=self.mapinfor["mkList"][s]["dist"]
+                            marklocal=self.mapinfor["mkList"][s]["dist"]*100
                             landmarks.append(marklocal)
                             nowid=targetID
 
@@ -193,10 +200,15 @@ class PF_Location():
                 xs = []
                 #   设置时间：
                 self.time2 = self.time1
-                self.timedata = self.socket_cl2.recv_json() 
-                while len(self.timedata['time']) == 0 :
-                    self.timedata = self.socket_cl2.recv_json() 
-                    self.time1 = self.timedata['time'][0]
+                topic, data = self.socket_cl2.recv_multipart()
+                data = data.decode()
+                data = json.loads(data)                
+                self.timedata = data['time'] 
+                while self.timedata is None :
+                    topic, data = self.socket_cl2.recv_multipart() 
+                    data = data.decode()
+                    data = json.loads(data)
+                    self.timedata = data['time']
                 time = self.time1 - self.time2
 
 #               状态更新模块
