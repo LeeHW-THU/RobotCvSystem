@@ -142,9 +142,9 @@ class PF_Location():
             targetID =None
             while self.mu <= max :
                 #   mark  to  loc
-                landmarks =[]
+                landmarks = []
                 nowid = None
-                count = 0
+                count = 1
                 self.marker_data = self.socket_marl.recv_json()
                 while len(self.marker_data["dists"]) == 0 and count < 10:
                     self.marker_data = self.socket_marl.recv_json()
@@ -170,9 +170,6 @@ class PF_Location():
                                     landmarks.append(marklocal)
 #               小车视野里没有目标mark时，就用视野中其它mark作为判定位置的依据
                     if m is None:
-                        if(targetID2 != targetID):
-                            if(len(landmarks)):
-                                landmarks.pop()
                             for j in range(len(self.mapinfor["mkList"])):
                                 if self.mapinfor["mkList"][j]["id"] == targetID :
                                     s = j
