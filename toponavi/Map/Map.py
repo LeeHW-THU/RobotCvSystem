@@ -51,10 +51,10 @@ class Map:
     def findPos(self,name):
         for aisle in self.map["AisleList"]:
             for room in aisle["Left"]:
-                if room["Name"] == name:
+                if room["RoomName"] == name:
                     return (aisle,room,"L")
             for room in aisle["Right"]:
-                if room["Name"] == name:
+                if room["RoomName"] == name:
                     return (aisle,room,"R")
         print("Cannot find room: "+name)
         return None
@@ -66,12 +66,12 @@ class Map:
                 targetAisle = aisle
             else:
                 for room in aisle["Left"]:
-                    if room["ArucoID"] == id:
+                    if room["RoomMarker"] == id:
                         targetAisle = aisle
                 if targetAisle is not None:
                     break
                 for room in aisle["Right"]:
-                    if room["ArucoID"] == id:
+                    if room["RoomMarker"] == id:
                         targetAisle = aisle
         return targetAisle
 
@@ -144,8 +144,8 @@ class Map:
                 # print("pathList",pathList)
             nodeSeq = []
             if minDistList[idxDesVex] != INF:
-                # pathList[idxDesVex][0] = staPos[1]["ArucoID"]
-                # pathList[idxDesVex][-1] = desPos[1]["ArucoID"]
+                # pathList[idxDesVex][0] = staPos[1]["RoomMarker"]
+                # pathList[idxDesVex][-1] = desPos[1]["RoomMarker"]
                 nodeSeq = pathList[idxDesVex] # 确定最后的路径点（路口）序列
                 # return (minDistList[idxDesVex],pathList[idxDesVex])
 
@@ -155,7 +155,7 @@ class Map:
             outAngle = 0
             direction = 0
             turn = 0
-            # path = [{"flag":"mk","value":staPos[1]["ArucoID"]}]
+            # path = [{"flag":"mk","value":staPos[1]["RoomMarker"]}]
             path = []
             i = 1
             nextMk = 0
@@ -223,8 +223,8 @@ class Map:
             # path.append({"flag":"dirc", "value":direction})
             path.append(direction)
             # path.append({"flag":"dist", "value":adjMat[nodeSeq[i-1], nodeSeq[i]]})
-            # path.append({"flag":"mk", "value":desPos[1]["ArucoID"]})
-            nextMk = desPos[1]["ArucoID"]
+            # path.append({"flag":"mk", "value":desPos[1]["RoomMarker"]})
+            nextMk = desPos[1]["RoomMarker"]
             path.append(nextMk)
             if desPos[2] == "L":
                 if direction == 1: turn = 90
@@ -250,11 +250,11 @@ class Map:
             repDict={"mkList":[]}
             repDict["mkList"].append(unit.copy())
             for room in aisle["Left"]:
-                unit["id"] = room["ArucoID"]
+                unit["id"] = room["RoomMarker"]
                 unit["dist"] = room["Distance"]
                 repDict["mkList"].append(unit.copy())
             for room in aisle["Right"]:
-                unit["id"] = room["ArucoID"]
+                unit["id"] = room["RoomMarker"]
                 unit["dist"] = room["Distance"]
                 repDict["mkList"].append(unit.copy())
             unit["id"] = aisle["EndMarker"]

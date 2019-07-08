@@ -13,7 +13,7 @@
             "EndDirection":270,
             "Length":3.6,
             "Right":[
-                {"Name":"Room1", "ArucoID":101, "Distance":0.7}
+                {"RoomName":"Room1", "RoomMarker":101, "Distance":0.7}
             ],
             "Left":[]
         },
@@ -28,7 +28,7 @@
             "Length":3.6,
             "Right":[],
             "Left":[
-                {"Name":"Room2", "ArucoID":102, "Distance":2.4}
+                {"RoomName":"Room2", "RoomMarker":102, "Distance":2.4}
             ]
         },
         {
@@ -41,10 +41,10 @@
             "EndDirection":270,
             "Length":15.6,
             "Right":[
-                {"Name":"Room3", "ArucoID":104, "Distance":5.4}
+                {"RoomName":"Room3", "RoomMarker":104, "Distance":5.4}
             ],
             "Left":[
-                {"Name":"Room4", "ArucoID":104, "Distance":9.0}
+                {"RoomName":"Room4", "RoomMarker":104, "Distance":9.0}
             ]
         },
         {
@@ -58,7 +58,7 @@
             "Length":5.4,
             "Right":[],
             "Left":[
-                {"Name":"Room5", "ArucoID":105, "Distance":1.8}
+                {"RoomName":"Room5", "RoomMarker":105, "Distance":1.8}
             ]
         },
         {
