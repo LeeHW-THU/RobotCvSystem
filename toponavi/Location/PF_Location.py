@@ -139,10 +139,10 @@ class PF_Location():
             particles = self.create_uniform_particles(max, N) ## max的值，需要具体接口知道实际地图的大小
 
             weights = np.zeros(N)
-            landmarks =[]
             targetID =None
             while self.mu <= max :
                 #   mark  to  loc
+                landmarks =[]
                 nowid = None
                 count = 0
                 self.marker_data = self.socket_marl.recv_json()
@@ -203,10 +203,10 @@ class PF_Location():
                         ds = self.marker_data["dists"][0][0]
                     dz = [ds]
                     self.update(particles, weights, z=dz, R=sensor_std_err, landmarks=landmarks)##更新粒子权值
-                    
-                if weights == 0 :
-                    weights = 1 / N
-                    
+
+                if (weights == 0).all():
+                    weights = np.ones(N) / N
+
                 if self.neff(weights) < N / 2 :##判断是否需要重采样
                     self.simple_resample(particles, weights)
 
