@@ -2,7 +2,7 @@ import math
 import time
 import logging
 
-from .controller import DifferentialController, MedianFilter, PID
+from .controller import DifferentialController, PID
 from .distancestatistics import DistanceStatisics
 
 logger = logging.getLogger('state')
@@ -19,22 +19,23 @@ class StateRunContext:
     def __init__(self, state_factories: dict, distance_statistics: DistanceStatisics):
         self._state_factories = state_factories
         self.distance_statistics = distance_statistics
-        self.last_ultrasonic_reading = None # filtered
         self.state = None
         self.turn_command = None
 
     def to_state(self, state_class):
         logger.info("Transfering from %s to %s", type(self.state).__name__, state_class.__name__)
         self.state = self._state_factories[state_class]()
+        self.state.enter(self)
 
     def ultrasonic_reading(self, reading):
-        self.last_ultrasonic_reading = reading
         self.distance_statistics.data(reading)
 
     def tick(self):
         self.state.tick(self)
-        logger.debug('tick. dist: k %.3f c %.3f e %.3e. turn: %.3f',
-                     self.distance_statistics.aproching_rate,
+        logger.debug('tick. dist: raw %.3f filtered %.3f k %.3f c %.3f e %.3e. turn: %.3f',
+                     self.distance_statistics.latest_raw,
+                     self.distance_statistics.latest_filtered,
+                     self.distance_statistics.approaching_rate,
                      self.distance_statistics.latest,
                      self.distance_statistics.squared_error,
                      self.turn_command)
@@ -45,15 +46,24 @@ class State:
 
     def tick(self, context: StateRunContext):
         raise NotImplementedError()
+    def enter(self, context: StateRunContext):
+        pass
 
 class NormalState(State):
     def __init__(self, config):
         super().__init__(config)
         self.disturb_squared_error_thre = config['disturb_squared_error_thre']
+        self.disturb_max_raw_thre = config['disturb_max_raw_thre']
         self._distance_setpoint_config = config['distance_setpoint']
         self._bias_timeout_config = config['bias_timeout']
         self.distance_setpoint_bias(0)
-        self.pid = PID(config['pid'], config['control_interval'])
+        control_interval = config['control_interval']
+        self.pid = PID(config['pid'], control_interval)
+        speed = config['speed']
+        self._approaching_angle = config['approaching_angle']
+        self._approach_per_tick = speed * math.sin(self._approaching_angle) * control_interval
+        self._approaching = False
+        self._approaching_direction = None # 1为远离墙，-1为靠近墙
 
     def distance_setpoint_bias(self, bias):
         self.distance_setpoint = self._distance_setpoint_config + bias
@@ -62,18 +72,29 @@ class NormalState(State):
         else:
             self.bias_timeout = float('inf')
         logger.debug('distance_setpoint: %.3f', self.distance_setpoint)
+        self._approaching = False
 
     def tick(self, context: StateRunContext):
-        if context.distance_statistics.squared_error > self.disturb_squared_error_thre:
-            context.to_state(DisturbedState)
+        if context.distance_statistics.squared_error > self.disturb_squared_error_thre \
+           or context.distance_statistics.latest_raw > self.disturb_max_raw_thre:
+            if self._approaching: # Try to keep go straight when approaching is disturbed
+                context.to_state(TurnState)
+                context.state.angle(-1 * self._approaching_direction * self._approaching_angle)
+            else:
+                context.to_state(DisturbedState)
             context.turn_command = 0
             return
 
-        context.turn_command = self.pid.error_sample(context.last_ultrasonic_reading - self.distance_setpoint)
+        context.turn_command = self.pid.error_sample(context.distance_statistics.latest_filtered - self.distance_setpoint)
         if time.time() > self.bias_timeout:
-            context.to_state(StabilizedState)
-            context.state.no_bias()
-            context.tick()
+            self._approaching = True
+            self._approaching_direction = -1 if self.distance_setpoint > self._distance_setpoint_config else 1
+            self.distance_setpoint += self._approaching_direction * self._approach_per_tick
+            if self._approaching_direction == -1 and self.distance_setpoint <= self._distance_setpoint_config or \
+                self._approaching_direction == 1 and self.distance_setpoint >= self._distance_setpoint_config:
+                self.distance_setpoint_bias(0) # approch completed
+            else:
+                logger.debug('approaching, distance setpoint: %.3f', self.distance_setpoint)
 
 class StabilizedState(State):
     """
@@ -81,28 +102,16 @@ class StabilizedState(State):
     """
     def __init__(self, config):
         super().__init__(config)
-        self.max_bias = config['max_bias']
-        self.min_bias = config['min_bias']
         self.max_no_bias = config['max_no_bias']
         self.min_no_bias = config['min_no_bias']
         self._distance_setpoint = config['distance_setpoint']
-        self.speed = config['speed']
-        self.aproching_angle = config['aproching_angle']
-    def no_bias(self):
-        self.max_bias = self.max_no_bias
-        self.min_bias = self.min_no_bias
+
     def tick(self, context: StateRunContext):
         bias = context.distance_statistics.latest - self._distance_setpoint
-        if bias < self.min_bias:
-            bias = self.min_bias
-        if bias < self.max_bias:
-            context.to_state(NormalState)
-            if bias > self.max_no_bias or bias < self.min_no_bias:
-                context.state.distance_setpoint_bias(bias)
-        else:
-            context.to_state(TurnState)
-            current_angle = math.atan2(context.distance_statistics.aproching_rate, self.speed)
-            context.state.angle(-current_angle - self.aproching_angle)
+
+        context.to_state(NormalState)
+        if bias > self.max_no_bias or bias < self.min_no_bias:
+            context.state.distance_setpoint_bias(bias)
 
 class DisturbedState(State):
     def __init__(self, config):
@@ -116,12 +125,16 @@ class DisturbedState(State):
     def initial(self):
         self._initial = True
 
+    def enter(self, context: StateRunContext):
+        super().enter(context)
+        context.distance_statistics.clear_window()
+
     def tick(self, context: StateRunContext):
         context.turn_command = 0.0
         now = time.time()
         if now < self.silent_end:
             return
-        if context.last_ultrasonic_reading > self.blind_thre:
+        if context.distance_statistics.latest_filtered > self.blind_thre:
             context.to_state(BlindState)
             return
         if context.distance_statistics.squared_error > self.disturb_squared_error_thre:
@@ -129,8 +142,6 @@ class DisturbedState(State):
             return
         if self._initial or now >= self.to_normal_time:
             context.to_state(StabilizedState)
-            if self._initial:
-                context.state.no_bias()
             context.tick()
             return
 
@@ -141,13 +152,17 @@ class ChaosState(State):
         self.distance_setpoint = config['distance_setpoint']
         self.pid = PID(config['pid'], config['control_interval'])
         self._to_normal_time_config = config['to_normal_time']
+        self.blind_thre = config['blind_thre']
         self._reset_to_normal_time()
 
     def _reset_to_normal_time(self):
         self.to_normal_time = time.time() + self._to_normal_time_config
 
     def tick(self, context: StateRunContext):
-        context.turn_command = self.pid.error_sample(context.last_ultrasonic_reading - self.distance_setpoint)
+        context.turn_command = self.pid.error_sample(context.distance_statistics.latest_filtered - self.distance_setpoint)
+        if context.distance_statistics.latest_filtered > self.blind_thre:
+            context.to_state(BlindState)
+            return
         if context.distance_statistics.squared_error > self.disturb_squared_error_thre:
             self._reset_to_normal_time()
         now = time.time()
@@ -199,7 +214,7 @@ class BlindState(State):
 
     def tick(self, context: StateRunContext):
         context.turn_command = 0
-        if context.last_ultrasonic_reading < self.restore_thre:
+        if context.distance_statistics.latest_filtered < self.restore_thre:
             context.to_state(DisturbedState)
 
 class StateController:
@@ -219,19 +234,17 @@ class StateController:
                 config[s[1]][c] = config[c]
 
         self._diff_controller = DifferentialController(config['pins']['motor'])
-        self._filter = MedianFilter(config['median_filter'])
 
         state_factories = {c: SimpleStateFactory(c, config[k]) for (c, k) in states}
         ds = DistanceStatisics(config['distance_statisics'], config['control_interval'])
         self._context = StateRunContext(state_factories, ds)
 
     def ultrasonic(self, reading):
-        filtered = self._filter.next(reading)
-        logger.debug('ultrasonic reading %.4f (filtered: %.4f)', reading, filtered)
-        self._context.ultrasonic_reading(filtered)
+        self._context.ultrasonic_reading(reading)
         self.tick()
 
     def turn(self, angle):
+        self._diff_controller.start()
         self._context.to_state(TurnState)
         self._context.state.angle(angle)
         self.tick()

@@ -23,7 +23,7 @@ async def main():
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.DEBUG)
-    logging.root.addHandler(journal.JournalHandler())
+    logging.root.addHandler(journal.JournalHandler(SYSLOG_IDENTIFIER='TopoNavi-Executor'))
 
     loop = asyncio.get_event_loop()
     try:

@@ -5,7 +5,7 @@ except ImportError:
 
 class Motor:
     MAX_PWM = 100
-    MIN_PWM = 15 # PWM太低小车无法运动，设置最小值提升操作体验
+    MIN_PWM = 0 # PWM太低小车无法运动，设置最小值提升操作体验
 
     def __init__(self, forward_pin: int, backward_pin: int):
         self.forward_pin = forward_pin
