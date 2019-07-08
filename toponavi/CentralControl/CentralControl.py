@@ -140,24 +140,26 @@ class CentralControl():
         Send the tar_dest to Location
         - Module: CentralControl/Location
         - Socket: PUP/SUB
-        - Pub Data: json; '{"tar_dest": tar_dest}'
+        - Pub Data: multipart ['tar_dest', '{"tar_dest": tar_dest}']
         '''
         data = {'tar_dest': self.tar_dest}
-        self.socket_cl.send_json(data)
+        json_data = json.dumps(data)
+        self.socket_cl.send_multipart([b'tar_dest', json_data])
         print('send tar_dest:', self.tar_dest)
 
     
     def send_time_difference(self):
         '''
-        Send the time to Location
+        Send the time_difference to Location
         - Module: CentralControl/Location
         - Socket: PUP/SUB
-        - Pub Data:json '{"time": time}'
+        - Pub Data: multipart ['time', '{"time": time}']
         '''
-        t_diff = time.clock() - self.start_time
-        data = {'time': t_diff}
-        self.socket_cl.send_json(data)
-        print('time:', t_diff)
+        time_difference = time.clock() - self.start_time
+        data = {'time': time_difference}
+        json_data = json.dumps(data)
+        self.socket_cl.send_multipart([b'time', json_data])
+        print('time:', time)
 
 
     def recv_loc_data(self):
