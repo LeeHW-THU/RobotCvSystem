@@ -12,7 +12,7 @@ class PF_Location():
     def __init__(self):
 
         self.mark_endpoint = 'ipc:///run/toponavi/MarkerDetector/Location.ipc'
-        self.cc_endpoint = 'ipc:///run/toponavi/Location/dt.ipc'
+        self.cc_endpoint = 'ipc:///run/toponavi/CentralControl/Location.ipc'
         self.loc_endpoint = 'ipc:///run/toponavi/Location/CentralControl.ipc'
         self.map_endpoint = 'ipc:///run/toponavi/Map/Location.ipc'
 
@@ -88,12 +88,17 @@ class PF_Location():
 
 #   评估小车位置
     def set_Location(self):
+        count = 0
         for j in range(len(self.mapinfor["mkList"])):
             if self.mapinfor["mkList"][j]["id"] == self.localmark :
                 n = j
-                if self.mu >= self.mapinfor["mkList"][n]["dist"] :
-                    self.location ='arr'
-        else:
+                print("find")
+                if self.mu > self.mapinfor["mkList"][n]["dist"]*100  :
+                    self.location = 'arr'
+                    count = 1
+        if self.location = 'arr' and count == 1 :
+            self.location = 'nar'
+        if count == 0 :
             self.location = 'nar'
 
 #   创建多个socket
@@ -140,6 +145,7 @@ class PF_Location():
 
             weights = np.zeros(N)
             targetID =None
+            self.mu = 0
             while self.mu <= max :
                 #   mark  to  loc
                 landmarks = []
@@ -150,7 +156,7 @@ class PF_Location():
                     self.marker_data = self.socket_marl.recv_json()
                     count += 1
 
-                print(self.marker_data["dists"])
+
                 print("localmark", self.localmark)
 #               限制条件，需要在有目标mark和小车在看的到mark的情况下进行，如果看不到，粒子无法更新权值 只能移动
                 if self.marker_data["ids"] and (self.localmark is not None) :
@@ -173,28 +179,30 @@ class PF_Location():
                             for j in range(len(self.mapinfor["mkList"])):
                                 if self.mapinfor["mkList"][j]["id"] == targetID :
                                     s = j
-                            marklocal=self.mapinfor["mkList"][s]["dist"]*100
-                            landmarks.append(marklocal)
-                            nowid=targetID
+                                    marklocal=self.mapinfor["mkList"][s]["dist"]*100
+                                    landmarks.append(marklocal)
+                                    nowid=targetID
 
                     print("Now TGmark is %s"%(nowid))
                     print(self.direction)
                 xs = []
                 #   设置时间：
-                if  data['tar_dest'] == 999 :
+                if  data is None :
                     topic, data = self.socket_cl.recv_multipart()
                     data = data.decode()
                     data = json.loads(data)
                 self.time2 = self.time1
                 self.timedata = data['time']
+                self.time1 = self.timedata
                 time = self.time1 - self.time2
-                data = {'tar_dest':999}
+                print("time",self.time1)
+                data = None
 #               状态更新模块
                 dire = self.direction
                 if dire is not None:
-                    self.predict(particles, u=51, std = 0.2, dt = time, dir = dire) ##单位厘米 51厘米每秒
+                    self.predict(particles, u=48.5, std = 0.2, dt = time, dir = dire) ##单位厘米 51厘米每秒
                 if dire is None:
-                    self.predict(particles, u=51, std = 0.2, dt = time, dir = 1)
+                    self.predict(particles, u=48.5, std = 0.2, dt = time, dir = 1)
 
 #               权值更新模块
                 if(len(landmarks)):
@@ -202,11 +210,12 @@ class PF_Location():
                         ds = self.marker_data["dists"][m][0]
                     else:
                         ds = self.marker_data["dists"][0][0]
+                    print(ds)
                     dz = [ds]
                     self.update(particles, weights, z=dz, R=sensor_std_err, landmarks=landmarks)##更新粒子权值
 
                 if (weights == 0).all():
-                    weights = np.ones(N) / N
+                    weights = np.ones(N) / (N*100)
 
                 if self.neff(weights) < N / 2 :##判断是否需要重采样
                     self.simple_resample(particles, weights)
