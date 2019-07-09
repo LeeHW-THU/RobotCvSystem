@@ -219,7 +219,7 @@ class PF_Location():
 
 #               传输部分：
                 location_date={"direction":self.direction,"location":self.location}
-                json_data = json.dumps(data)
+                json_data = json.dumps(location_date)
                 self.socket_lc.send(json_data.encode())
                 print("send infor",location_date)
                 self.direction = None
