@@ -65,6 +65,7 @@ class CentralControl():
         else:
             self.tar_dire = 1
             self.tar_dest = 999
+        print('set new target', self.tar_dire, self.tar_dest)
 
 
     def reset_start_time(self):
@@ -77,13 +78,13 @@ class CentralControl():
         self.executor_status = executor_status
 
     def set_executor_angle(self, executor_angle):
-        '''Set the motion angle to executor'''
+        '''Set the motion angle to executor'''        
         angle_data = {'angle': executor_angle}
         self.executor_angle = json.dumps(angle_data)
 
 
     def input_address(self):
-        '''Get the input address from keyboard'''
+        '''Get the input address from keyboard'''        
         source = input("Input the source >>> ")
         destination = input("Input the destination >>> ")
         self.set_address(source, destination)
@@ -146,7 +147,7 @@ class CentralControl():
         json_data = json.dumps(data)
         self.socket_cl.send(json_data.encode())
         print('send tar_dest:', self.tar_dest)
-        print('time:', time_difference)
+        print('time:', time_difference)    
 
 
     def recv_loc_data(self):
@@ -154,7 +155,7 @@ class CentralControl():
         Recv the loc_data from Location
         - Module: Location/CentralControl
         - Socket: DEALER/ROUTER
-        - Sub Data: json; {"direcetion":'', "location":''}
+        - Sub Data: json; {"direcetion":'', "location":''}        
         '''
         dealer_id, loc_data = self.socket_lc.recv_multipart()
         loc_data = json.loads(loc_data.decode())
@@ -168,7 +169,7 @@ class CentralControl():
         Send motion data to executor
         - Module: CentralControl/Executor
         - Socket: DEALER/ROUTRER
-        - Send Data: multipart ['start/stop/turn', json]
+        - Send Data: multipart ['start/stop/turn', json]        
         '''
         if self.executor_status == 1:
             self.socket_ce.send_multipart([b'start', b'none'])
@@ -199,7 +200,7 @@ class CentralControl():
         while True:
             #Send the tar_dest to Location
             #Send the time difference
-            self.send_tar_dest_and_time_difference()
+            self.send_tar_dest_and_time_difference
 
             #Recv the loc_data from Location
             self.recv_loc_data()
@@ -209,6 +210,10 @@ class CentralControl():
                 print('Navigation finish.')
                 break
             else:
+                if self.cur_location == 'arr':                      #Arrive the target marker
+                        #self.set_executor_status(2)            
+                        self.set_target_data()                      #Update the tmp target
+                  
                 if self.tar_dire != 1 and self.tar_dire != -1:      #Need to turn
                     self.set_executor_angle(self.tar_dire * 3.14 / 180)
                     self.set_executor_status(3)                     #turn
@@ -221,9 +226,6 @@ class CentralControl():
                     else:
                         if self.cur_location == 'nar':              #Not arrive the target marker
                             self.set_executor_status(1)             #start
-                        elif self.cur_location == 'arr':            #Arrive the target marker
-                            #self.set_executor_status(2)
-                            self.set_target_data()                  #Update the tmp target
                         else:
                             self.set_executor_status(2)             #stop
             print('Set executor_status: ', self.executor_status)
@@ -250,7 +252,7 @@ class CentralControl():
                     print('Send exector_status', self.executor_status)
                     if self.executor_angle['angle'] != 3.14:
                         self.reset_start_time()
-
+                        
 
     def run(self):
         #Get the address
