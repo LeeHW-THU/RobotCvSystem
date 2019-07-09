@@ -79,7 +79,7 @@ class MarkerDetector():
                 euAngel = rvecToEulerAngel(rvec[idx])
                 dict["ids"].append([targetID])
                 dict["dists"].append([dist.tolist()])
-                dict["euAngels"].append(enAngels.tolist())
+                dict["euAngels"].append(euAngels.tolist())
 
         return dict
 
