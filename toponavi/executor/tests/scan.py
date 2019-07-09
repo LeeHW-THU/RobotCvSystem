@@ -17,7 +17,7 @@ async def main():
     executor.ultrasonic = MockUltrasonic(30.0)
     run_task = asyncio.ensure_future(executor.run())
     await asyncio.sleep(0.5)
-    executor.controller.turn(1.57)
+    executor.controller.scan()
     await run_task
 
 if __name__ == "__main__":

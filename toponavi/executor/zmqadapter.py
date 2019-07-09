@@ -74,6 +74,10 @@ class ZmqAdapter:
                         logger.info('got turn from %s, angle %.3f', dealer_id, angle)
                         self._start_control()
                         self._executor.controller.turn(angle)
+            elif cmd == 'scan':
+                logger.info('got scan from %s.', dealer_id)
+                self._start_control()
+                self._executor.controller.scan()
             else:
                 logger.warning('got invalid command %s from %s', cmd, dealer_id)
 
