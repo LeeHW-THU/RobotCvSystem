@@ -181,10 +181,14 @@ class PF_Location():
                     print(self.direction)
                 xs = []
                 #   设置时间：
+                if  data['tar_dest'] == 999 :
+                    topic, data = self.socket_cl.recv_multipart()
+                    data = data.decode()
+                    data = json.loads(data)
                 self.time2 = self.time1
                 self.timedata = data['time']
                 time = self.time1 - self.time2
-
+                data = {'tar_dest':999}
 #               状态更新模块
                 dire = self.direction
                 if dire is not None:
