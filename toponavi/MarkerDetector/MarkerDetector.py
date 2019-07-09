@@ -59,6 +59,7 @@ class MarkerDetector():
         # print(frame.shape)
         corners, ids, rejectedImgPoints = aruco.detectMarkers(frame, self.arucoDict, parameters=self.parameters)
         rvec, tvec, _ = aruco.estimatePoseSingleMarkers(corners, self.len, self.camMat, self.camDist)
+        nMarkers = 0
         if ids is not None:
             nMarkers = ids.shape[0]
             if targetID is None:
@@ -142,7 +143,8 @@ class MarkerDetector():
                 # output = cv2.cvtColor(frame, cv2.COLOR_GRAY2BGR)
                 # cv2.imwrite("img_"+str(i)+".jpg", output)
                 resDict = self.detect(frame)
-                print(resDict)
+                if resDict["ids"].shape[0] != 0
+                    print(resDict)
                 outSocket.send_json(resDict)
         finally:
             cmdSocket.send_string('stop')
