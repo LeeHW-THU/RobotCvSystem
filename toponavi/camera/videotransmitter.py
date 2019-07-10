@@ -6,6 +6,7 @@ import zmq
 import zmq.asyncio
 
 from .camera import Camera
+from .gstreamertransmitter import GstreamerTransmitter
 
 logger = logging.getLogger('VideoTransmitter')
 
@@ -53,8 +54,13 @@ class VideoTransmitter:
                 logger.warning('got invalid command %s from %s', cmd, dealer_id)
 
     async def data(self):
-        async with Camera(self._config['camera']) as camera:
-            while True:
-                data = await camera.get_frame()
-                self.data_socket.send(data, copy=False)
-                logger.debug('data sent')
+        try:
+            async with Camera(self._config['h264_fifo'], self._config['camera']) as camera:
+                with GstreamerTransmitter(self._config['h264_fifo'], self._config['gstreamer']):
+                    while True:
+                        data = await camera.get_frame()
+                        self.data_socket.send(data, copy=False)
+                        logger.debug('data sent')
+        except:
+            logger.error('data', exc_info=True)
+            raise

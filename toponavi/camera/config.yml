@@ -1,8 +1,16 @@
 command_socket: /run/toponavi/camera/command.ipc
 data_socket: /run/toponavi/camera/raw.ipc
 
+h264_fifo: /run/toponavi/camera/h264.fifo
+
 camera:
   width: 1296
   height: 972
   framerate: 10
-  frame_size: 1920768 # got from raspividyuv --verbose
+  frame_size: 1920768 # got from raspivid --verbose
+  bitrate: 1000000
+
+gstreamer:
+  host: 192.168.137.1
+  port: 5000
+  rtcp_local_port: 7729
