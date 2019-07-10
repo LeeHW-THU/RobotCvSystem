@@ -1,3 +1,4 @@
+#单纯依靠Aruco码的定位算法
 import zmq
 import json
 import threading
