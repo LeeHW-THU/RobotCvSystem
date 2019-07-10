@@ -30,7 +30,7 @@ class CentralControl():
         self.tar_dest = 0
 
         #Time data to Location
-        self.start_time = time.clock()
+        self.start_time = time.time()
 
         #Current direction and location data
         #--- Current direction: 1/-1/None
@@ -70,7 +70,7 @@ class CentralControl():
 
     def reset_start_time(self):
         '''Reset the start_time for Location'''
-        self.start_time = time.clock()
+        self.start_time = time.time()
 
 
     def set_executor_status(self, executor_status):
@@ -142,7 +142,7 @@ class CentralControl():
         - Socket: DEALER/ROUTER
         - Pub Data: json; '{"tar_dest": tar_dest}', "time": time}
         '''
-        time_difference = time.clock() - self.start_time
+        time_difference = time.time() - self.start_time
         data = {'tar_dest': self.tar_dest, 'time': time_difference}
         json_data = json.dumps(data)
         self.socket_cl.send(json_data.encode())
@@ -200,7 +200,7 @@ class CentralControl():
         while True:
             #Send the tar_dest to Location
             #Send the time difference
-            self.send_tar_dest_and_time_difference
+            self.send_tar_dest_and_time_difference()
 
             #Recv the loc_data from Location
             self.recv_loc_data()
