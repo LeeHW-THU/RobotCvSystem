@@ -3,6 +3,7 @@ import json
 import multiprocessing
 import time
 import pathlib
+import math
 import numpy as np
 import scipy.stats
 from numpy.random import uniform, randn, random
@@ -33,7 +34,7 @@ class PF_Location():
         self.maploc=None
         self.location = ''
         self.mu = 0
-
+        self.tt_localmark = None
     # 创建粒子
     def create_uniform_particles(self, x_range, N):
         particles = np.random.rand(N)*x_range
@@ -96,7 +97,7 @@ class PF_Location():
                 if self.mu > self.mapinfor["mkList"][n]["dist"]*100  :
                     self.location = 'arr'
                     count = 1
-        if self.location = 'arr' and count == 1 :
+        if self.location == 'arr' and self.localmark == self.tt_localmark :
             self.location = 'nar'
         if count == 0 :
             self.location = 'nar'
@@ -123,10 +124,11 @@ class PF_Location():
         self.socket_marl.setsockopt(zmq.SUBSCRIBE, b'')
 
 #   运行部分，单进程
-    def PFrun(self, N = 5000, sensor_std_err = 0.1):
+    def PFrun(self, N = 5000, sensor_std_err = 0.2):
         while True:
         #   cc to loc
-            print("begin work")
+            print("begin a new local map")
+            self.tt_localmark = self.localmark
             topic, data = self.socket_cl.recv_multipart()
             data = data.decode()
             data = json.loads(data)
@@ -143,11 +145,22 @@ class PF_Location():
             print(max)
             particles = self.create_uniform_particles(max, N) ## max的值，需要具体接口知道实际地图的大小
 
-            weights = np.zeros(N)
+            weights = np.zeros(N) ##初始化粒子权值
             targetID =None
             self.mu = 0
+            self.location = "nar"
             while self.mu <= max :
                 #   mark  to  loc
+                if self.location == "arr" :
+                    self.tt_localmark = self.localmark
+                    topic, data = self.socket_cl.recv_multipart()
+                    data = data.decode()
+                    data = json.loads(data)
+                    self.iddata = data['tar_dest']
+                    print(self.iddata)
+                    self.localmark = self.iddata
+                    print('location recieved: ', self.localmark)
+
                 landmarks = []
                 nowid = None
                 count = 1
@@ -161,7 +174,6 @@ class PF_Location():
 #               限制条件，需要在有目标mark和小车在看的到mark的情况下进行，如果看不到，粒子无法更新权值 只能移动
                 if self.marker_data["ids"] and (self.localmark is not None) :
                     self.set_direction()
-                    targetID2 = targetID
                     targetID = self.marker_data["ids"][0][0]
 #               判断小车视野里是否有目标mark 如果有，直接锁定目标mark
                     m = None
@@ -200,9 +212,9 @@ class PF_Location():
 #               状态更新模块
                 dire = self.direction
                 if dire is not None:
-                    self.predict(particles, u=48.5, std = 0.2, dt = time, dir = dire) ##单位厘米 51厘米每秒
+                    self.predict(particles, u=40, std = 0.2, dt = time, dir = dire) ##单位厘米 xx厘米每秒 可调
                 if dire is None:
-                    self.predict(particles, u=48.5, std = 0.2, dt = time, dir = 1)
+                    self.predict(particles, u=44, std = 0.2, dt = time, dir = 1)
 
 #               权值更新模块
                 if(len(landmarks)):
