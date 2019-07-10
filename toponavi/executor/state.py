@@ -19,7 +19,7 @@ class StateRunContext:
     def __init__(self, state_factories: dict, distance_statistics: DistanceStatisics):
         self._state_factories = state_factories
         self.distance_statistics = distance_statistics
-        self.state = None
+        self.state = State({})
         self.turn_command = None
         self.speed_command = None
 
@@ -286,5 +286,5 @@ class StateController:
     def tick(self):
         self._context.tick()
         self._diff_controller.command(
-            self._context.speed_command or self.speed_command,
+            self._context.speed_command if self._context.speed_command is not None else self.speed_command,
             self._context.turn_command)

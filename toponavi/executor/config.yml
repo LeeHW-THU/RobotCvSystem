@@ -63,4 +63,4 @@ blind_state:
   restore_thre: 2
 
 scan_state:
-  turn_command: 0.3
+  turn_command: 0.5
