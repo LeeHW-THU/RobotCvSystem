@@ -21,9 +21,14 @@ class StateRunContext:
         self.distance_statistics = distance_statistics
         self.state = None
         self.turn_command = None
+        self.speed_command = None
+
+    def default_speed(self):
+        self.speed_command = None
 
     def to_state(self, state_class):
         logger.info("Transfering from %s to %s", type(self.state).__name__, state_class.__name__)
+        self.state.leave(self)
         self.state = self._state_factories[state_class]()
         self.state.enter(self)
 
@@ -47,6 +52,8 @@ class State:
     def tick(self, context: StateRunContext):
         raise NotImplementedError()
     def enter(self, context: StateRunContext):
+        pass
+    def leave(self, context: StateRunContext):
         pass
 
 class NormalState(State):
@@ -217,6 +224,19 @@ class BlindState(State):
         if context.distance_statistics.latest_filtered < self.restore_thre:
             context.to_state(DisturbedState)
 
+class ScanState(State):
+    def __init__(self, config):
+        super().__init__(config)
+        self.turn_command = config['turn_command']
+
+    def tick(self, context: StateRunContext):
+        context.turn_command = self.turn_command
+        context.speed_command = 0
+    def leave(self, context: StateRunContext):
+        super().leave(context)
+        context.default_speed()
+        context.turn_command = 0
+
 class StateController:
     def __init__(self, config):
         self.speed_command = config['speed_command']
@@ -228,6 +248,7 @@ class StateController:
             (ChaosState, 'chaos_state'),
             (TurnState, 'turn_state'),
             (BlindState, 'blind_state'),
+            (ScanState, 'scan_state'),
         ]
         for s in states:
             for c in ['control_interval', 'distance_setpoint']:
@@ -249,6 +270,11 @@ class StateController:
         self._context.state.angle(angle)
         self.tick()
 
+    def scan(self):
+        self._diff_controller.start()
+        self._context.to_state(ScanState)
+        self.tick()
+
     def start(self):
         self._diff_controller.start()
         self._context.to_state(DisturbedState)
@@ -259,4 +285,6 @@ class StateController:
 
     def tick(self):
         self._context.tick()
-        self._diff_controller.command(self.speed_command, self._context.turn_command)
+        self._diff_controller.command(
+            self._context.speed_command or self.speed_command,
+            self._context.turn_command)
