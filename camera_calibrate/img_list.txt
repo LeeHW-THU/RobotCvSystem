@@ -1,0 +1,17 @@
+D:\MyDearest\projects\RobotCvSystem\camera_calibrate\0.jpg
+D:\MyDearest\projects\RobotCvSystem\camera_calibrate\1.jpg
+D:\MyDearest\projects\RobotCvSystem\camera_calibrate\10.jpg
+D:\MyDearest\projects\RobotCvSystem\camera_calibrate\11.jpg
+D:\MyDearest\projects\RobotCvSystem\camera_calibrate\12.jpg
+D:\MyDearest\projects\RobotCvSystem\camera_calibrate\13.jpg
+D:\MyDearest\projects\RobotCvSystem\camera_calibrate\16.jpg
+D:\MyDearest\projects\RobotCvSystem\camera_calibrate\17.jpg
+D:\MyDearest\projects\RobotCvSystem\camera_calibrate\18.jpg
+D:\MyDearest\projects\RobotCvSystem\camera_calibrate\19.jpg
+D:\MyDearest\projects\RobotCvSystem\camera_calibrate\2.jpg
+D:\MyDearest\projects\RobotCvSystem\camera_calibrate\3.jpg
+D:\MyDearest\projects\RobotCvSystem\camera_calibrate\5.jpg
+D:\MyDearest\projects\RobotCvSystem\camera_calibrate\6.jpg
+D:\MyDearest\projects\RobotCvSystem\camera_calibrate\7.jpg
+D:\MyDearest\projects\RobotCvSystem\camera_calibrate\8.jpg
+D:\MyDearest\projects\RobotCvSystem\camera_calibrate\9.jpg
