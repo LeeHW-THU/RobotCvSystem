@@ -27,7 +27,7 @@ class CentralControl():
         #--- Target direction: diricetion(1/-1) or angle
         #--- Target destination: marker_id
         self.tar_dire = 1
-        self.tar_dest = 0
+        self.tar_dest = 1
 
         #Time data to Location
         self.start_time = time.time()
@@ -57,14 +57,16 @@ class CentralControl():
 
     def set_target_data(self):
         '''Set the temp target location data from Map_path'''
-        if (len(self.path_data) != 0):
+        if (len(self.path_data) > 1):
             self.tar_dire = self.path_data[0]
             self.tar_dest = self.path_data[1]
             self.path_data.pop(0)
             self.path_data.pop(0)
         else:
             self.tar_dire = 1
-            self.tar_dest = 999
+            self.tar_dest = 0
+        print('current path', self.path_data)
+        print('path len', len(self.path_data))
         print('set new target', self.tar_dire, self.tar_dest)
 
 
@@ -177,6 +179,8 @@ class CentralControl():
             self.socket_ce.send_multipart([b'stop', b'none'])
         elif self.executor_status == 3:
             self.socket_ce.send_multipart([b'turn', self.executor_angle.encode()])
+        elif self.executor_status == 4:
+            self.socket_ce.send_multipart([b'scan', b'none'])
         else:
             self.socket_ce.send_multipart([b'stop', b'none'])
         print('Send executor data:', self.executor_status)
@@ -206,13 +210,15 @@ class CentralControl():
             self.recv_loc_data()
 
             #Set executor_status
-            if self.tar_dest == '##':                               #Path_data is empty
+            if self.tar_dest == 0:                               #Path_data is empty
                 print('Navigation finish.')
+                #self.set_executor_status(2)
+                #self.send_motion_data()
                 break
             else:
                 if self.cur_location == 'arr':                      #Arrive the target marker
-                        #self.set_executor_status(2)            
-                        self.set_target_data()                      #Update the tmp target
+                    #self.set_executor_status(2)            
+                    self.set_target_data()                      #Update the tmp target
                   
                 if self.tar_dire != 1 and self.tar_dire != -1:      #Need to turn
                     self.set_executor_angle(self.tar_dire * 3.14 / 180)
@@ -250,9 +256,25 @@ class CentralControl():
                     self.cur_status = self.executor_status
                     self.cur_angle = self.executor_angle
                     print('Send exector_status', self.executor_status)
-                    if self.executor_angle['angle'] != 3.14:
+                    data = json.loads(self.executor_angle)
+                    if data['angle'] != 3.14:
                         self.reset_start_time()
-                        
+        
+        #Enter the room
+        print('Entering the room')
+        self.tar_dire = self.path_data[0]
+        self.set_executor_angle(self.tar_dire * 3.14 / 180)
+        self.set_executor_status(3)
+        self.send_motion_data()
+        time.sleep(2)
+        self.set_executor_status(2)
+        self.send_motion_data()
+        print('Have entered the room')
+
+        #Scan the room
+        print('Scan the room')
+        self.set_executor_status(4)
+        self.send_motion_data()
 
     def run(self):
         #Get the address
