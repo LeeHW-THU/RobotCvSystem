@@ -23,7 +23,7 @@ class Map:
             # 构建走廊连接节点的邻接矩阵
             self.adjMat = np.full((self.map["ConnectionNodeNum"],self.map["ConnectionNodeNum"]),
                                     float('inf'),
-                                    dtype=np.float)# 拓展的两个位置用于存放之后进行路径规划时的起点和终点
+                                    dtype=np.float)
             for aisle in self.map["AisleList"]:
                 if (aisle["HeadNodeID"] is not None) and (aisle["EndNodeID"] is not None):
                     if self.adjMat[aisle["HeadNodeID"],aisle["EndNodeID"]] == float('inf'):
